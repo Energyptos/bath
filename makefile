@@ -12,6 +12,9 @@ testic: test_icList
 
 clean:
 	rm -f IntervalMap IntervalMap.o P5pgmReader.o
+
+work:
+	gedit IntervalMap.c IntervalMap.h ICList.c ICList.h P5pgmReader.c P5pgmReader.h makefile &
 	
 IntervalMap: IntervalMap.o P5pgmReader.o ICList.o
 	gcc $(FLAGS) -o IntervalMap IntervalMap.o P5pgmReader.o ICList.o -lm
