@@ -9,7 +9,7 @@
 void printList(IC* head){
 	for(IC* ptr=head;ptr!=NULL;ptr=ptr->next){
 		int len=(ptr->yEnd-ptr->yStart);
-		printf("|len: %d;st: %f|",len,ptr->state);
+		printf("|len: %d;st: %f; start:%.1f,end:%.1f|",len,ptr->state,ptr->yStart,ptr->yEnd);
 	}
 	printf("\n");
 
@@ -63,7 +63,7 @@ IC* insertAfter(IC* thisOne){
 }
 
 
-IC* insertInto(IC* head,int start,int end,float state){
+IC* insertInto(IC* head,float start,float end,float state){
 /*printf("InsertINTO: list: ");*/
 /*printList(head);*/
 /*printf(" with start= %d , end= %d ; state= %f \n",start,end,state);*/
@@ -71,31 +71,82 @@ IC* insertInto(IC* head,int start,int end,float state){
 // is made 				|rnPtr|midl|lastHalf|
 	for(IC* runPtr=head;runPtr!=NULL;runPtr=runPtr->next){
 		if(runPtr->state!=state){
-			IC* middleOne;
-			IC* lastHalf;
-			if(runPtr->yStart<start){
-				//only here we need a middleOne, because if those starts are equal, we would leave an empty interval!
-				middleOne = insertAfter(runPtr);
-				middleOne->state=state;
+		float oldEnd=runPtr->yEnd;
+			if(runPtr->yEnd>=end && runPtr->yStart<=start){
+				IC* middleOne = insertAfter(runPtr);
 				middleOne->yStart=start;
 				middleOne->yEnd=end;
 				runPtr->yEnd=start;
-				runPtr=middleOne;
-			}
-			if(runPtr->yEnd>end){
-				//ony if this is the case, we need 3 blocks: run,midl and lastHalf
-				lastHalf = insertAfter(runPtr); //runptr will be the middleOne if we inserted after it.
+				middleOne->state=state;
+				IC* lastHalf = insertAfter(middleOne); //runptr will be the middleOne if we inserted after it.		
 				lastHalf->state=runPtr->state;
-				lastHalf->yEnd=runPtr->yEnd;
-				lastHalf->yStart=end;
+				lastHalf->yEnd=oldEnd;
+				lastHalf->yStart=end;		
 				runPtr=lastHalf;
+				break;
 			}
+			if(runPtr->yEnd>end && runPtr->yStart==start){
+				//start is the same => we only need two intervals
+				IC* lastHalf = insertAfter(runPtr);
+				lastHalf->state=runPtr->state;
+				lastHalf->yStart=end;
+				lastHalf->yEnd=oldEnd;
+				runPtr->state=state;
+				runPtr->yEnd=end;
+				runPtr=lastHalf;
+				break;
+			}
+			if(runPtr->yEnd==end && runPtr->yStart<start){
+				//end is the same-> start is less
+				IC* lastHalf = insertAfter(runPtr);
+				lastHalf->yEnd=end;
+				lastHalf->state=state;
+				lastHalf->yStart=start;
+				runPtr->yEnd=start;
+				runPtr=lastHalf;
+				break;
+			}
+			if(runPtr->yEnd==end && runPtr->yStart==start){
+				exit(EXIT_FAILURE);
+			}
+				
+		
+		}
+	}
+	
+
+}
+
+
+void tidyUpList(IC* head){
+	int min_whitespace=3;
+	for(IC* runPtr=head;runPtr!=NULL;runPtr=runPtr->next){
+/*		if(runPtr->yEnd-runPtr->yStart<=0){*/
+/*			runPtr=runPtr->prev;*/
+/*			deleteThis(runPtr->next);*/
+/*			continue;	*/
+/*		}*/
+		if(runPtr->state<0.4){
+		//whitespace!
+			if(runPtr->yEnd-runPtr->yStart<min_whitespace){
+				//make it disapear
+				if(runPtr->prev!=NULL && runPtr->next!=NULL){
+				 printf("DELETE!!!!!!!!\n\n\n");
+					runPtr=runPtr->prev;
+					runPtr->yEnd=runPtr->next->yEnd;
+					deleteThis(runPtr->next);
+					continue;
+				}
+			}
+		}
+		if(runPtr->next!=NULL && runPtr->next->state==runPtr->state){
+			runPtr->yEnd=runPtr->next->yEnd;
+			deleteThis(runPtr->next);
+			continue;
 		}
 		
 	}
 }
-
-
 
 
 void deleteAfter(IC* thisOne){
@@ -104,6 +155,7 @@ void deleteAfter(IC* thisOne){
 
 
 void deleteThis(IC* thisOne){
+	//printf("this %p, prev %p , next %p\n\n\n",thisOne,thisOne->prev, thisOne->next);
 	if(thisOne==NULL)return;
 	if(thisOne->next!=NULL && thisOne->prev!=NULL){
 		thisOne->prev->next=thisOne->next;

@@ -9,7 +9,7 @@
 
 
 
-#define ROWS_IN_INTERVAL 4
+#define ROWS_IN_INTERVAL 8
 #define DATA_ROWS 640
 #define DATA_COLUMNS 8
 
@@ -22,7 +22,7 @@
 	
 	static IC** curICArray;
 
-
+	static PGMDataFloat* dataPGM;
 
 
 
@@ -163,6 +163,8 @@ void convertPgm(const char *inputFileName,const char *outputFileName,IC** curICA
 	
 	for(int x=0; x<pgmpicture2->row/ROWS_IN_INTERVAL; x++){
 		setIC(newICArray,x,compressPCRow(pcarray[x],pgmpicture2->col,accessIC(newICArray,x)));
+		printf("%d",x);
+		printList(newICArray[x]);
 	}
 	
 
@@ -298,20 +300,20 @@ typedef struct line{
 }Line;
 
 
-int computeStartX(Line line,int exactInterval,int width){
+float computeStartX(Line line,int exactInterval,int width){
 	float startX=width;
 	//step 1: check value range 
 	//1.1: wenn bei exactInterval+ROWS_IN_INTERVAL durchgeht: dann oben messen
-	if(line.yMin<(exactInterval+ROWS_IN_INTERVAL) && line.yMax>(exactInterval+ROWS_IN_INTERVAL)){
+	if(line.yMin<(exactInterval) && line.yMax>(exactInterval)){
 /*		printf("\n ( %d + rowsInInterval - %f)/%f\n\n",exactInterval,line.b,line.m);*/
-		startX=round((exactInterval+ROWS_IN_INTERVAL-line.b)/line.m);
+		startX=(exactInterval-line.b)/line.m;
 /*		printf("startx= %f",startX);*/
 	}
 /*	printf("1. startX = %f\n",startX);*/
 	//1.2: wenn es auch unten durch geht, da auch nachsehen, ob vielleicht kleiner/groeser
-	if(line.yMin<(exactInterval) && line.yMax>(exactInterval)){
-		if(startX>(exactInterval-line.b)/line.m) 
-			startX=(exactInterval-line.b)/line.m;
+	if(line.yMin<(exactInterval+ROWS_IN_INTERVAL) && line.yMax>(exactInterval+ROWS_IN_INTERVAL)){
+		if(startX>(exactInterval+ROWS_IN_INTERVAL-line.b)/line.m) 
+			startX=(exactInterval+ROWS_IN_INTERVAL-line.b)/line.m;
 	}
 /*		printf("2. startX = %f\n",startX);*/
 	//wenn es zwischen drin liegt: schauen ob der eckpunkt weiter drausssen liegt
@@ -319,26 +321,33 @@ int computeStartX(Line line,int exactInterval,int width){
 		if(startX>(line.yMin-line.b)/line.m)
 			startX=(line.yMin-line.b)/line.m;
 	}
+	if(startX<0)startX=0;
 /*		printf("3. startX = %f\n",startX);*/
-	return (int)round(startX);
+	return startX;
 }
-int computeEndX(Line line, int exactInterval){
-	int endX=0;
+float computeEndX(Line line, int exactInterval,int width){
+	float endX=0.;
 	//step 1: check value range 
 	//1.1: wenn bei exactInterval+ROWS_IN_INTERVAL durchgeht: dann oben messen
-	if(line.yMin<(exactInterval+ROWS_IN_INTERVAL) && line.yMax>(exactInterval+ROWS_IN_INTERVAL)){
-		endX=round((exactInterval+ROWS_IN_INTERVAL-line.b)/line.m);
+	if(line.yMin<(exactInterval) && line.yMax>(exactInterval)){
+		endX=(exactInterval-line.b)/line.m;
 	}
 	//1.2: wenn es auch unten durch geht, da auch nachsehen, ob vielleicht kleiner/groeser
-	if(line.yMin<(exactInterval) && line.yMax>(exactInterval)){
-		if(endX<(exactInterval-line.b)/line.m) 
-			endX=round((exactInterval-line.b)/line.m);
+	if(line.yMin<(exactInterval+ROWS_IN_INTERVAL) && line.yMax>(exactInterval+ROWS_IN_INTERVAL)){
+		if(endX<(exactInterval-line.b+ROWS_IN_INTERVAL)/line.m) 
+			endX=(exactInterval-line.b+ROWS_IN_INTERVAL)/line.m;
 	}
 	//wenn es zwischen drin liegt: schauen ob der eckpunkt weiter drausssen liegt
 	if(line.yMin>exactInterval && line.yMin<exactInterval+ROWS_IN_INTERVAL){
 		if(endX<(line.yMin-line.b)/line.m)
-			endX=round((line.yMin-line.b)/line.m);
+			endX=(line.yMin-line.b)/line.m;
 	}
+	//wenn es zwischen drin liegt: schauen ob der eckpunkt weiter drausssen liegt
+	if(line.yMax>exactInterval && line.yMax<exactInterval+ROWS_IN_INTERVAL){
+		if(endX<(line.yMax-line.b)/line.m)
+			endX=(line.yMax-line.b)/line.m;
+	}
+	if(endX>=width)endX=width-1;
 	return endX;
 }
 
@@ -404,28 +413,48 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 			for (int i = 1; i < 4; i += 1){
 				if(lines[i].yMax>maxY)maxY=lines[i].yMax;
 				if(lines[i].yMin<minY)minY=lines[i].yMin;
-			}
-			//step 3.1: look at all intervals between yMin and yMax!
-			
-/*			printf("from = %d :_ to %d\n\n",(int)fmax((minY/ROWS_IN_INTERVAL),0),(int)fmin(maxY/ROWS_IN_INTERVAL,curICArraySize) );*/
-			for(int interval=fmax(floor(minY/ROWS_IN_INTERVAL),0);interval<fmin(ceil(maxY/ROWS_IN_INTERVAL),curICArraySize) ;interval++){
-/*				printf("interval= %d\n",interval);*/
-				int startX=width;
-				int endX=0;
-				for(int i = 0; i < 4; i += 1){
+				for(int x=0;x<400;x++){
+					int val=round(lines[i].m*x+lines[i].b);
+					if(val<lines[i].yMax && val>=lines[i].yMin){
+						dataPGM->matrix[val*400+x]=1;
+					}
 					
-					int tmpStartX=	computeStartX(lines[i],interval*ROWS_IN_INTERVAL,width);
-/*					printf("startx= %d ; at i= %d\n\n",tmpStartX,i);*/
-					int tmpEndX=	computeEndX(lines[i],interval*ROWS_IN_INTERVAL);
-					if(startX>tmpStartX)startX=tmpStartX;
-					if(endX<tmpEndX)endX=tmpEndX;
-				}
-				printList(whiteICArray[interval]);
-				if(startX<endX && startX!=endX){
-					insertInto(whiteICArray[interval],startX,endX,runArray[i]->state);
 				}
 				
 			}
+			//step 3.1: look at all intervals between yMin and yMax!
+			
+			//TRY to make a picture with the lines in it!
+			
+			
+			
+			
+/*			printf("from = %d :_ to %d\n\n",(int)fmax((minY/ROWS_IN_INTERVAL),0),(int)fmin(maxY/ROWS_IN_INTERVAL,curICArraySize) );*/
+			for(int interval=fmax(floor(minY/ROWS_IN_INTERVAL-4),0);interval<fmin(ceil(maxY/ROWS_IN_INTERVAL),curICArraySize) ;interval++){
+/*				printf("interval= %d\n",interval);*/
+				float startX=width;
+				float endX=0.;
+				for(int i = 0; i < 4; i += 1){
+					float tmpStartX=computeStartX(lines[i],interval*ROWS_IN_INTERVAL,width);
+/*					printf("startx= %d ; at i= %d\n\n",tmpStartX,i);*/
+					float tmpEndX=	computeEndX(lines[i],interval*ROWS_IN_INTERVAL,width);
+					if(startX>tmpStartX)startX=tmpStartX;
+					if(endX<tmpEndX)endX=tmpEndX;
+				}
+
+				if(startX<endX && startX!=endX){
+					insertInto(whiteICArray[interval],startX,endX,runArray[i]->state);
+				}
+				tidyUpList(whiteICArray[interval]);			//check structure for slow gaps, which came from rotating everything
+				printf("%d ",interval);
+				printList(whiteICArray[interval]);
+			}
+			
+			
+			free(lines);
+
+			
+			
 		}
 	}
 
@@ -466,7 +495,7 @@ void freeICArray(IC** array,int size){
 }
 
 int main( int argc,char** argv){
-int stepsize=12;
+int stepsize=1;
 	curICArray=NULL;
 	curICArraySize=0;
 	shiftProgress=0;
@@ -484,8 +513,22 @@ int stepsize=12;
 	pgmOut->matrix=allocate_dynamic_matrix(640, 400);
 	pgmOut->max_gray=255;
 
+	dataPGM=(PGMDataFloat*)malloc(sizeof(PGMDataFloat));
+	dataPGM->col=400;
+	dataPGM->row=640;
+	dataPGM->max_gray=255;
+	dataPGM->matrix=allocate_dynamic_matrix(640,400);
 
-	float angle=11.;
+	for (int i = 0; i < 640; i += 1)
+	{
+		for (int y = 0; y < 400; y += 1)
+		{
+			dataPGM->matrix[i*400+y]=0;
+		}
+	}
+
+
+	float angle=20.;
 	for(int step=((pgmpic->row-640)/stepsize); step >=0;step--){
 		
 //Pepare "Sensor"-Values for algorithm. it would not be relevant if we would get real data -> so it doesnt take time in simulation!
@@ -496,7 +539,7 @@ int stepsize=12;
 
 
 	//Longitudinal movement - simulation
-		for (int i = 640+stepsize*step; i>stepsize*step; i--){
+		for (int i = 640+stepsize*step; i>=stepsize*step; i--){
 			for (int j = 0; j < pgmpic->col; ++j) {
 				pgmOut->matrix[(i-stepsize*step) * pgmpic->col + j]=pgmpic->matrix[i * pgmpic->col + j];
 		   }
@@ -507,9 +550,9 @@ int stepsize=12;
 //NOW we are at the part for interpreting the simulated "sensor"-values.
 		
 		convertPgm("tmpOut.pgm","pgmOutPicture.pgm",curICArray);
-		system("xdg-open pgmOutPicture.pgm");
+/*		system("xdg-open pgmOutPicture.pgm");*/
 		
-		 angle=5.5;
+
 	//1. compensate own vehicle motion
 		
 		//Rotation: 
@@ -522,12 +565,16 @@ int stepsize=12;
 		
 		writeICtoPGM(curICArray,640,400,"afterShift.pgm");
 		system("xdg-open afterShift.pgm");
-		exit(EXIT_SUCCESS);
+		//exit(EXIT_SUCCESS);
+		
+		
+		writePGM("lines.pgm",resizeAndInvertProbabilitiesBackToPicture(dataPGM));
+		
 		
 		
 		//Longitudinal:	
 		int oldShift=shiftProgress;
-		shiftProgress+=stepsize/ROWS_IN_INTERVAL;
+		//shiftProgress+=stepsize/ROWS_IN_INTERVAL;
 		shiftOffset=shiftOffset+(stepsize%ROWS_IN_INTERVAL)/ROWS_IN_INTERVAL;
 		if(shiftOffset>1){
 			shiftOffset-=1;
@@ -540,11 +587,33 @@ int stepsize=12;
 /*		}*/
 		
 		writeICtoPGM(curICArray,640,400,"afterShift.pgm");
-		system("xdg-open afterShift.pgm");
-		exit(EXIT_SUCCESS);
+/*		system("xdg-open afterShift.pgm");*/
+		//exit(EXIT_SUCCESS);
 		
 		//step one: create white field in which the moved structures can be inserted.
 
+		/////////////TESTETSETSETSET/////
+		
+		rotatePGMData(pgmpic,angle/360*3.142,640+stepsize*step);
+		
+	
+		for (int i = 640+stepsize*step; i>=stepsize*step; i--){
+			for (int j = 0; j < pgmpic->col; ++j) {
+				pgmOut->matrix[(i-stepsize*step) * pgmpic->col + j]=pgmpic->matrix[i * pgmpic->col + j];
+		   }
+		}		
+		writePGM("tmpOut2.pgm",pgmOut);
+		
+		
+//NOW we are at the part for interpreting the simulated "sensor"-values.
+		
+		convertPgm("tmpOut2.pgm","pgmROT.pgm",curICArray);
+		system("xdg-open pgmROT.pgm");
+		
+	
+	
+	
+	
 	
 	
 		//writeICtoPGM(curICArray,640,400,"afterShift.pgm");

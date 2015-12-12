@@ -20,7 +20,9 @@ void deleteWholeList(IC* start);
 
 IC* insertBefore(IC* thisOne); //returns inserted Pointer
 IC* insertAfter(IC* thisOne); //returns inserted Pointer
-IC* insertInto(IC* head,int start,int end,float state);
+IC* insertInto(IC* head,float start,float end,float state);
 void deleteAfter(IC* thisOne);
 
 void printList(IC* head); //prints the list
+
+void tidyUpList(IC* head);
