@@ -22,9 +22,6 @@
 	
 	static IC** curICArray;
 
-	static PGMDataFloat* dataPGM;
-
-
 
 void printPC(PC* pc){
 	//printf("PC has lateral position y: %f   ;\n xposition inside is: %f    ;\n and the state is %d   \n\n\n",pc->y,pc->xPosition,pc->state);
@@ -143,7 +140,7 @@ void convertPgm(const char *inputFileName,const char *outputFileName,IC** curICA
 
 	
 	IC** newICArray;
-	newICArray=  (IC**)malloc(sizeof(IC*)*pgmpicture2->row/ROWS_IN_INTERVAL);
+	newICArray=(IC**)malloc(sizeof(IC*)*pgmpicture2->row/ROWS_IN_INTERVAL);
 	if(curICArraySize==0){
 		printf("Initialize!\n");
 		curICArraySize=pgmpicture2->row/ROWS_IN_INTERVAL;
@@ -163,8 +160,6 @@ void convertPgm(const char *inputFileName,const char *outputFileName,IC** curICA
 	
 	for(int x=0; x<pgmpicture2->row/ROWS_IN_INTERVAL; x++){
 		setIC(newICArray,x,compressPCRow(pcarray[x],pgmpicture2->col,accessIC(newICArray,x)));
-		printf("%d",x);
-		printList(newICArray[x]);
 	}
 	
 
@@ -192,11 +187,13 @@ void convertPgm(const char *inputFileName,const char *outputFileName,IC** curICA
 
 IC* accessIC(IC** ICArray,int index){
 	if(ICArray==NULL)return NULL;
-	return ICArray[abs(curICArraySize+index-shiftProgress)%curICArraySize];
+	return ICArray[index];
+/*	return ICArray[abs(curICArraySize+index-shiftProgress)%curICArraySize];*/
 }
 
 void setIC(IC** ICArray,int index,IC* setvalue){
-	ICArray[abs(curICArraySize+index-shiftProgress)%curICArraySize]=setvalue;
+	ICArray[index]=setvalue;
+/*	ICArray[abs(curICArraySize+index-shiftProgress)%curICArraySize]=setvalue;*/
 }
 
 
@@ -321,6 +318,10 @@ float computeStartX(Line line,int exactInterval,int width){
 		if(startX>(line.yMin-line.b)/line.m)
 			startX=(line.yMin-line.b)/line.m;
 	}
+	if(line.yMax>exactInterval && line.yMax<exactInterval+ROWS_IN_INTERVAL){
+		if(startX>(line.yMax-line.b)/line.m)
+			startX=(line.yMax-line.b)/line.m;
+	}	
 	if(startX<0)startX=0;
 /*		printf("3. startX = %f\n",startX);*/
 	return startX;
@@ -359,16 +360,16 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 	
 	for(int i=0;i<curICArraySize;i++){
 	//	printf("durchlauf!!!!!!!\n\n");
-		for(IC** runArray=icArray;runArray[i]!=NULL;runArray[i]=runArray[i]->next){
+		for(IC** runArray=icArray;accessIC(runArray,i)!=NULL;setIC(runArray,i,accessIC(runArray,i)->next)){
 	//		printf("state= %f\n",runArray[i]->state);
-			if(runArray[i]->state < 0.4)continue;
+			if(accessIC(runArray,i)->state < 0.4)continue;
 			//step 1: get the corner coordinates:
 			float tlX,tlY,blX,blY,trX,trY,brX,brY;  //tl=topLeft , bl=bottomLeft, tr=topright....
 			
-			tlX= runArray[i]->yStart;
+			tlX= accessIC(runArray,i)->yStart;
 			tlY=i * ROWS_IN_INTERVAL;   //was curICArraySize-i)*ROWS_IN_INTERVAL
 			trY= tlY;
-			trX= runArray[i]->yEnd;
+			trX= accessIC(runArray,i)->yEnd;
 			blX= tlX;
 			blY= tlY+ROWS_IN_INTERVAL;
 			brY= blY;
@@ -413,14 +414,6 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 			for (int i = 1; i < 4; i += 1){
 				if(lines[i].yMax>maxY)maxY=lines[i].yMax;
 				if(lines[i].yMin<minY)minY=lines[i].yMin;
-				for(int x=0;x<400;x++){
-					int val=round(lines[i].m*x+lines[i].b);
-					if(val<lines[i].yMax && val>=lines[i].yMin){
-						dataPGM->matrix[val*400+x]=1;
-					}
-					
-				}
-				
 			}
 			//step 3.1: look at all intervals between yMin and yMax!
 			
@@ -443,11 +436,11 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 				}
 
 				if(startX<endX && startX!=endX){
-					insertInto(whiteICArray[interval],startX,endX,runArray[i]->state);
+					insertInto(accessIC(whiteICArray,interval),startX,endX,accessIC(runArray,i)->state);
 				}
-				tidyUpList(whiteICArray[interval]);			//check structure for slow gaps, which came from rotating everything
-				printf("%d ",interval);
-				printList(whiteICArray[interval]);
+				tidyUpList(accessIC(whiteICArray,interval));			//check structure for slow gaps, which came from rotating everything
+/*				printf("%d ",interval);*/
+/*				printList(accessIC(whiteICArray,interval));*/
 			}
 			
 			
@@ -495,7 +488,7 @@ void freeICArray(IC** array,int size){
 }
 
 int main( int argc,char** argv){
-int stepsize=1;
+int stepsize=12;
 	curICArray=NULL;
 	curICArraySize=0;
 	shiftProgress=0;
@@ -513,23 +506,84 @@ int stepsize=1;
 	pgmOut->matrix=allocate_dynamic_matrix(640, 400);
 	pgmOut->max_gray=255;
 
-	dataPGM=(PGMDataFloat*)malloc(sizeof(PGMDataFloat));
-	dataPGM->col=400;
-	dataPGM->row=640;
-	dataPGM->max_gray=255;
-	dataPGM->matrix=allocate_dynamic_matrix(640,400);
 
-	for (int i = 0; i < 640; i += 1)
-	{
-		for (int y = 0; y < 400; y += 1)
-		{
-			dataPGM->matrix[i*400+y]=0;
-		}
+
+	float angle=7.;
+	
+	//create 1st pic -> start position!
+	
+	for (int i = 1280; i>=640; i--){
+		for (int j = 0; j < pgmpic->col; ++j) {
+			pgmOut->matrix[(i-640) * pgmpic->col + j]=pgmpic->matrix[i * pgmpic->col + j];
+	   }
 	}
-
-
-	float angle=20.;
+	
+	writePGM("tmpOut.pgm",pgmOut);
+	
+	
+	
+	
 	for(int step=((pgmpic->row-640)/stepsize); step >=0;step--){
+//NOW we are at the part for interpreting the simulated "sensor"-values.
+	//3.Feature Extraction
+		convertPgm("tmpOut.pgm","pgmOutPicture.pgm",curICArray);
+/*		system("xdg-open pgmOutPicture.pgm");*/
+		
+
+	//1. compensate own vehicle motion
+	//2.Prediction of other Objects
+			
+		//Rotation: 
+
+		IC** whiteICArray = makeNewWhite(curICArraySize,pgmOut->col); //tested.
+		rotateStructure(curICArray,angle/360*3.142,pgmOut->col,pgmOut->row,whiteICArray);
+		freeICArray(curICArray,curICArraySize);
+		curICArray=whiteICArray;
+		
+		
+		
+//Longitudinal:	
+
+		//HERE with stucture shift!
+		
+		for(int shift=0;shift<stepsize/ROWS_IN_INTERVAL;shift++){
+			for(int x=curICArraySize-1;x>=1;x--){
+				curICArray[x]=curICArray[x-1];
+			}
+			deleteWholeList(curICArray[0]); //free lowest row, we dont need it anymore
+			curICArray[0]=insertAfter(NULL);
+			curICArray[0]->yStart=0;
+			curICArray[0]->yEnd=pgmOut->col-1;
+			curICArray[0]->state=0;		
+		}
+
+		writeICtoPGM(curICArray,640,400,"afterShift.pgm");
+		system("xdg-open afterShift.pgm");
+
+				//HERE WITH INDEX SHIFT!
+/*		int oldShift=shiftProgress;*/
+/*		//shiftProgress+=stepsize/ROWS_IN_INTERVAL;*/
+/*		shiftOffset=shiftOffset+(stepsize%ROWS_IN_INTERVAL)/ROWS_IN_INTERVAL;*/
+/*		if(shiftOffset>1){*/
+/*			shiftOffset-=1;*/
+/*			shiftProgress++;*/
+/*		};*/
+/*		int diffShift=shiftProgress-oldShift;*/
+
+/*		*/
+			
+		
+		//--> done with the convertPGM method 
+		
+		//4. Association and update
+
+		//assocAndUpdate(curICArray,newICArray)
+		//5. Merge
+		
+			
+	
+		sleep(1);
+		
 		
 //Pepare "Sensor"-Values for algorithm. it would not be relevant if we would get real data -> so it doesnt take time in simulation!
 		printf("Frame %d\n",((pgmpic->row-640)/stepsize)-step);
@@ -545,97 +599,7 @@ int stepsize=1;
 		   }
 		}		
 		writePGM("tmpOut.pgm",pgmOut);
-		
-		
-//NOW we are at the part for interpreting the simulated "sensor"-values.
-		
-		convertPgm("tmpOut.pgm","pgmOutPicture.pgm",curICArray);
-/*		system("xdg-open pgmOutPicture.pgm");*/
-		
-
-	//1. compensate own vehicle motion
-		
-		//Rotation: 
-
-		IC** whiteICArray = makeNewWhite(curICArraySize,pgmOut->col); //tested.
-		rotateStructure(curICArray,angle/360*3.142,pgmOut->col,pgmOut->row,whiteICArray);
-		freeICArray(curICArray,curICArraySize);
-		curICArray=whiteICArray;
-		
-		
-		writeICtoPGM(curICArray,640,400,"afterShift.pgm");
-		system("xdg-open afterShift.pgm");
-		//exit(EXIT_SUCCESS);
-		
-		
-		writePGM("lines.pgm",resizeAndInvertProbabilitiesBackToPicture(dataPGM));
-		
-		
-		
-		//Longitudinal:	
-		int oldShift=shiftProgress;
-		//shiftProgress+=stepsize/ROWS_IN_INTERVAL;
-		shiftOffset=shiftOffset+(stepsize%ROWS_IN_INTERVAL)/ROWS_IN_INTERVAL;
-		if(shiftOffset>1){
-			shiftOffset-=1;
-			shiftProgress++;
-		};
-		int diffShift=shiftProgress-oldShift;
-/*		for(int x=0;x<diffShift;x++){*/
-/*			//itemsInList(accessIC(curICArray,x));*/
-/*			deleteWholeList(accessIC(curICArray,x));*/
-/*		}*/
-		
-		writeICtoPGM(curICArray,640,400,"afterShift.pgm");
-/*		system("xdg-open afterShift.pgm");*/
-		//exit(EXIT_SUCCESS);
-		
-		//step one: create white field in which the moved structures can be inserted.
-
-		/////////////TESTETSETSETSET/////
-		
-		rotatePGMData(pgmpic,angle/360*3.142,640+stepsize*step);
-		
-	
-		for (int i = 640+stepsize*step; i>=stepsize*step; i--){
-			for (int j = 0; j < pgmpic->col; ++j) {
-				pgmOut->matrix[(i-stepsize*step) * pgmpic->col + j]=pgmpic->matrix[i * pgmpic->col + j];
-		   }
-		}		
-		writePGM("tmpOut2.pgm",pgmOut);
-		
-		
-//NOW we are at the part for interpreting the simulated "sensor"-values.
-		
-		convertPgm("tmpOut2.pgm","pgmROT.pgm",curICArray);
-		system("xdg-open pgmROT.pgm");
-		
-	
-	
-	
-	
-	
-	
-		//writeICtoPGM(curICArray,640,400,"afterShift.pgm");
-		//	system("xdg-open afterShift.pgm");
-
-		
-
-/*		*/
-		//2.Prediction of other Objects
-		
-		//3.Feature Extraction
-		//--> done with the convertPGM method 
-		
-		//4. Association and update
-
-		//assocAndUpdate(curICArray,newICArray)
-		//5. Merge
-		
-			
-	
-		sleep(1);
-		
+		system("xdg-open tmpOut.pgm");
 		
 		
 		//TODO: Free the IC's !!! they are used but not freed!
