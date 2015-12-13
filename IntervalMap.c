@@ -129,7 +129,7 @@ void writeICtoPGM(IC** icArray, int row_size, int col_size,const char *outputFil
 
 
 
-void convertPgm(const char *inputFileName,const char *outputFileName,IC** curICArrayLocale){
+void convertPgm(const char *inputFileName,const char *outputFileName,IC** newICArray){
 	PGMDataFloat pgmpicture;
 	PGMDataFloat* pgmpicture2;
 	pgmpicture2 = readPGM(inputFileName, &pgmpicture);
@@ -139,13 +139,13 @@ void convertPgm(const char *inputFileName,const char *outputFileName,IC** curICA
 	
 
 	
-	IC** newICArray;
+/*	IC** newICArray;*/
 	newICArray=(IC**)malloc(sizeof(IC*)*pgmpicture2->row/ROWS_IN_INTERVAL);
 	if(curICArraySize==0){
 		printf("Initialize!\n");
 		curICArraySize=pgmpicture2->row/ROWS_IN_INTERVAL;
-		curICArrayLocale = newICArray;
-		curICArray=curICArrayLocale;
+/*		curICArrayLocale = newICArray;*/
+		curICArray=newICArray;
 	}
 
 	
@@ -174,7 +174,6 @@ void convertPgm(const char *inputFileName,const char *outputFileName,IC** curICA
 	}
 	free(pcarray);
 	
-	curICArrayLocale=newICArray;
 	
 	deallocate_dynamic_matrix(pgmpicture2->matrix,pgmpicture2->row);
 	free(pgmpicture2);
@@ -445,11 +444,13 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 			
 			
 			free(lines);
-
+			
 			
 			
 		}
 	}
+	freeICArray(curICArray,curICArraySize);
+	curICArray=whiteICArray;
 
 
 }
@@ -488,7 +489,7 @@ void freeICArray(IC** array,int size){
 }
 
 int main( int argc,char** argv){
-int stepsize=12;
+int stepsize=1;
 	curICArray=NULL;
 	curICArraySize=0;
 	shiftProgress=0;
@@ -497,7 +498,7 @@ int stepsize=12;
 	PGMDataFloat tmp;
 	PGMDataFloat* pgmpic;
 
-	pgmpic=readPGM("400x1280.pgm",&tmp);
+	pgmpic=readPGM("400x1280_7pt.pgm",&tmp);
 	
 	
 	PGMDataFloat* pgmOut = (PGMDataFloat*)malloc(sizeof(PGMDataFloat));
@@ -508,7 +509,7 @@ int stepsize=12;
 
 
 
-	float angle=1.;
+	float angle=7;
 	
 	//create 1st pic -> start position!
 	
@@ -520,13 +521,13 @@ int stepsize=12;
 	
 	writePGM("tmpOut.pgm",pgmOut);
 	
-	
+	convertPgm("tmpOut.pgm","pgmOutPicture.pgm",curICArray);
 	
 	
 	for(int step=((pgmpic->row-640)/stepsize); step >=0;step--){
 //NOW we are at the part for interpreting the simulated "sensor"-values.
-	//3.Feature Extraction
-		convertPgm("tmpOut.pgm","pgmOutPicture.pgm",curICArray);
+
+
 /*		system("xdg-open pgmOutPicture.pgm");*/
 		
 
@@ -537,8 +538,7 @@ int stepsize=12;
 
 		IC** whiteICArray = makeNewWhite(curICArraySize,pgmOut->col); //tested.
 		rotateStructure(curICArray,angle/360*3.142,pgmOut->col,pgmOut->row,whiteICArray);
-		freeICArray(curICArray,curICArraySize);
-		curICArray=whiteICArray;
+		
 		
 		
 		
@@ -570,15 +570,8 @@ int stepsize=12;
 /*		};*/
 /*		int diffShift=shiftProgress-oldShift;*/
 
-/*		*/
-			
-		
-		//--> done with the convertPGM method 
-		
-		//4. Association and update
 
-		//assocAndUpdate(curICArray,newICArray)
-		//5. Merge
+
 		
 			
 	
@@ -602,9 +595,27 @@ int stepsize=12;
 		system("xdg-open tmpOut.pgm");
 		
 		
-		//TODO: Free the IC's !!! they are used but not freed!
-		//free(curICArray);
+		//3.Feature Extraction	
+		
+		//--> done with the convertPGM method 
+				
+		convertPgm("tmpOut.pgm","pgmOutPicture.pgm",curICArray);
+				system("xdg-open pgmOutPicture.pgm");
 
+
+
+		//4. Association and update
+
+		//assocAndUpdate(curICArray,newICArray)
+		//5. Merge
+		
+
+
+
+
+
+		//free(curICArray);
+		exit(EXIT_SUCCESS);
 		
 		
 		
