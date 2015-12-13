@@ -508,7 +508,7 @@ int stepsize=12;
 
 
 
-	float angle=7.;
+	float angle=1.;
 	
 	//create 1st pic -> start position!
 	
@@ -554,7 +554,7 @@ int stepsize=12;
 			curICArray[0]=insertAfter(NULL);
 			curICArray[0]->yStart=0;
 			curICArray[0]->yEnd=pgmOut->col-1;
-			curICArray[0]->state=0;		
+			curICArray[0]->state=1;		
 		}
 
 		writeICtoPGM(curICArray,640,400,"afterShift.pgm");
