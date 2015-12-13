@@ -15,8 +15,8 @@ IC* compressPCRow(PC* pcarray,int size,IC* icOut); //returns Head of row!
 
 void printIC(IC** icArray,int size); //not in use
 void writeICtoPGM(IC** icArray, int row_size, int col_size,const char *outputFileName);
-void convertPgm(const char *inputFileName,const char *outputFileName, IC** curICArray);  //does the whole process
-
+IC** convertPgm(const char *inputFileName,const char *outputFileName, IC** curICArray);  //does the whole process
+void freeICArray(IC** array,int size);
 
 
 

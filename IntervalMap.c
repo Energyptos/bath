@@ -16,6 +16,7 @@
 
 
 	//static IC** curICArray;
+	static int curArrayWidth;
 	static int curICArraySize;
 	static int shiftProgress;
 	static float shiftOffset;
@@ -129,7 +130,7 @@ void writeICtoPGM(IC** icArray, int row_size, int col_size,const char *outputFil
 
 
 
-void convertPgm(const char *inputFileName,const char *outputFileName,IC** newICArray){
+IC** convertPgm(const char *inputFileName,const char *outputFileName,IC** newICArray){
 	PGMDataFloat pgmpicture;
 	PGMDataFloat* pgmpicture2;
 	pgmpicture2 = readPGM(inputFileName, &pgmpicture);
@@ -144,6 +145,7 @@ void convertPgm(const char *inputFileName,const char *outputFileName,IC** newICA
 	if(curICArraySize==0){
 		printf("Initialize!\n");
 		curICArraySize=pgmpicture2->row/ROWS_IN_INTERVAL;
+		curArrayWidth=pgmpicture2->col;
 /*		curICArrayLocale = newICArray;*/
 		curICArray=newICArray;
 	}
@@ -179,7 +181,8 @@ void convertPgm(const char *inputFileName,const char *outputFileName,IC** newICA
 	free(pgmpicture2);
 	
 	deallocate_dynamic_matrix(pgmpicture.matrix,pgmpicture.row);
-
+	printf("newArray 0 ystart = %f\n\n",newICArray[0]->yStart);
+	return newICArray;
 	
 }
 
@@ -457,27 +460,111 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 
 
 
-
-
-
-
-/*
-void assocAndUpdate(IC** map, IC** measurement){
-	IC icMap=getFirstCell(map);  //TODO
-	IC icMeas;
-	while(icMeas=next(measurement)!=NULL){
-		IC icAssoc=associateBoarder(map,icMeas);
-		if(icAssoc!=NULL){
-			updateBoarder(icAssoc,icMeas);
-		}else{
-			icAssoc=createCell(map,icMeas);
-		}
-		while(icMap<=icAssoc){  //what does this mean??
-			updateCell(icMap,icMeas);
-			icMap=getNextCell(icMap);
+IC* associateBoarder(IC** map,IC* icMeas,int curIndex){
+	float startDev,endDev,stateDev;
+	
+	for(IC* icMap=map[curIndex];icMap!=NULL;icMap=icMap->next){
+		startDev=fabs(icMap->yStart-icMeas->yStart)/curArrayWidth;
+		endDev=fabs(icMap->yEnd-icMeas->yEnd)/curArrayWidth;
+		stateDev= fabs(icMap->state-icMeas->state);
+		if(startDev+endDev<0.4 && stateDev<0.2){
+			//associated!
+			if(curIndex==21){
+			printf("startDev %f, endDev= %f,stateDev= %f\n",startDev,endDev,stateDev);
+			printf("associated! ->\n icMap start: %.1f; end: %.1f; state: %.1f",icMap->yStart,icMap->yEnd,icMap->state);}
+			return icMap;
 		}
 	}
-}*/
+/*	if(curIndex>0){*/
+/*		for(IC* icMap=map[curIndex-1];icMap!=NULL;icMap=icMap->next){*/
+/*			startDev=fabs(icMap->yStart-icMeas->yStart)/curArrayWidth;*/
+/*			endDev=fabs(icMap->yEnd-icMeas->yEnd)/curArrayWidth;*/
+/*			stateDev= fabs(icMap->state-icMeas->state);*/
+/*			if(startDev+endDev<0.2 && stateDev<0.2){*/
+/*				//associated!*/
+/*				if(curIndex==21){*/
+/*				printf("startDev %f, endDev= %f,stateDev= %f\n",startDev,endDev,stateDev);*/
+/*				printf("2ndTryassociated! ->\n icMap start: %.1f; end: %.1f; state: %.1f",icMap->yStart,icMap->yEnd,icMap->state);}*/
+/*				return icMap;*/
+/*			}*/
+/*		}*/
+/*	}*/
+/*	if(curIndex<curICArraySize-1){*/
+/*		for(IC* icMap=map[curIndex+1];icMap!=NULL;icMap=icMap->next){*/
+/*			startDev=fabs(icMap->yStart-icMeas->yStart)/curArrayWidth;*/
+/*			endDev=fabs(icMap->yEnd-icMeas->yEnd)/curArrayWidth;*/
+/*			stateDev= fabs(icMap->state-icMeas->state);*/
+/*			if(startDev+endDev<0.2 && stateDev<0.2){*/
+/*				//associated!*/
+/*				if(curIndex==21){*/
+/*				printf("startDev %f, endDev= %f,stateDev= %f\n",startDev,endDev,stateDev);*/
+/*				printf("3rdTryassociated! ->\n icMap start: %.1f; end: %.1f; state: %.1f",icMap->yStart,icMap->yEnd,icMap->state);}*/
+/*				return icMap;*/
+/*			}*/
+/*		}*/
+/*	}*/
+	//try above and below!?
+
+	printf("notAssociated!\n");
+	printf("startDev %f, endDev= %f,stateDev= %f\n icMeas->yStart = %f ; icMeas->yEnd= %f ; state= %f\n\n",startDev,endDev,stateDev,icMeas->yStart,icMeas->yEnd,icMeas->state);
+	return NULL;
+}
+
+void updateBoarder(IC* icAssoc,IC* icMeas,int x){
+	//we should compute the kallman filter update step!
+	//but we dont have sigma or other things we need. so i'll weigh it in my own style
+	if(x==21){
+		printf("icAssoc->ystart= %f,  icMeas_>start= %f \nicAssoc->yend= %f,  icMeas_>end= %f\n",icAssoc->yStart,icMeas->yStart,icAssoc->yEnd,icMeas->yEnd);
+	}
+	if(icAssoc->yEnd!=curArrayWidth-1) icAssoc->yEnd=(icAssoc->yEnd*0.4+icMeas->yEnd*0.6);
+	if(icAssoc->next!=NULL)icAssoc->next->yStart=icAssoc->yEnd;
+	if(icAssoc->yStart!=0)icAssoc->yStart=(icAssoc->yStart*0.4+icMeas->yStart*0.6);	
+	if(icAssoc->prev!=NULL)icAssoc->prev->yEnd=icAssoc->yStart;
+	
+	if(x==21){
+		printf("\nIT IS NOW:: icAssoc->ystart= %f, icAssoc->yend= %f,  \n\n",icAssoc->yStart,icAssoc->yEnd);
+	}
+}
+
+void updateCell(IC* icMap,IC* icMeas){
+	//we calculate the new occupancy probability!
+	float pt=icMeas->state;
+	float p1t=icMap->state;
+	
+	float newP=pt*p1t/((1-pt)*(1-p1t)+pt*p1t);  //equation 14 in "Interval based representation of occupancy information ...0"
+	icMap->state=newP;
+	
+}
+
+
+
+void assocAndUpdate(IC** map, IC** measurement){
+	for(int x=0;x<curICArraySize;x++){
+		IC* icMap=map[x];
+		if(x==21){
+		printf("BEFORE 21!!");
+		printList(map[x]);
+		printList(measurement[x]);}
+		for(IC* icMeas=measurement[x];icMeas!=NULL;icMeas=icMeas->next){
+			IC* icAssoc=associateBoarder(map,icMeas,x);
+			if(icAssoc!=NULL){
+				updateBoarder(icAssoc,icMeas,x);
+			}else{
+				printf("before: ->   ");			
+				printList(map[x]);
+				icAssoc=insertInto(map[x],icMeas->yStart,icMeas->yEnd,icMeas->state);
+				printf("inserted! -> ");
+				printList(map[x]);
+			}
+			while(icMap!=NULL && icMap->yEnd<=icAssoc->yEnd){
+				updateCell(icMap,icMeas);
+				icMap=icMap->next;
+			}
+		}
+		printf("%d ",x);
+		printList(map[x]);
+	}
+}
 
 
 void freeICArray(IC** array,int size){
@@ -498,7 +585,7 @@ int stepsize=1;
 	PGMDataFloat tmp;
 	PGMDataFloat* pgmpic;
 
-	pgmpic=readPGM("400x1280_7pt.pgm",&tmp);
+	pgmpic=readPGM("400x1280.pgm",&tmp);
 	
 	
 	PGMDataFloat* pgmOut = (PGMDataFloat*)malloc(sizeof(PGMDataFloat));
@@ -509,7 +596,7 @@ int stepsize=1;
 
 
 
-	float angle=7;
+	float angle=6.0;
 	
 	//create 1st pic -> start position!
 	
@@ -554,7 +641,7 @@ int stepsize=1;
 			curICArray[0]=insertAfter(NULL);
 			curICArray[0]->yStart=0;
 			curICArray[0]->yEnd=pgmOut->col-1;
-			curICArray[0]->state=1;		
+			curICArray[0]->state=0;		
 		}
 
 		writeICtoPGM(curICArray,640,400,"afterShift.pgm");
@@ -598,17 +685,17 @@ int stepsize=1;
 		//3.Feature Extraction	
 		
 		//--> done with the convertPGM method 
-				
-		convertPgm("tmpOut.pgm","pgmOutPicture.pgm",curICArray);
+		IC** measIC = convertPgm("tmpOut.pgm","pgmOutPicture.pgm",measIC);
 				system("xdg-open pgmOutPicture.pgm");
 
 
 
 		//4. Association and update
-
-		//assocAndUpdate(curICArray,newICArray)
+		assocAndUpdate(curICArray,measIC);
 		//5. Merge
 		
+		writeICtoPGM(curICArray,640,400,"afterAaU.pgm");
+		system("xdg-open afterAaU.pgm");
 
 
 

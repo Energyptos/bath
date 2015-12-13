@@ -83,7 +83,7 @@ IC* insertInto(IC* head,float start,float end,float state){
 				lastHalf->yEnd=oldEnd;
 				lastHalf->yStart=end;		
 				runPtr=lastHalf;
-				break;
+				return middleOne;
 			}
 			if(runPtr->yEnd>end && runPtr->yStart==start){
 				//start is the same => we only need two intervals
@@ -94,7 +94,7 @@ IC* insertInto(IC* head,float start,float end,float state){
 				runPtr->state=state;
 				runPtr->yEnd=end;
 				runPtr=lastHalf;
-				break;
+				return runPtr;
 			}
 			if(runPtr->yEnd==end && runPtr->yStart<start){
 				//end is the same-> start is less
@@ -104,11 +104,13 @@ IC* insertInto(IC* head,float start,float end,float state){
 				lastHalf->yStart=start;
 				runPtr->yEnd=start;
 				runPtr=lastHalf;
-				break;
+				return lastHalf;
 			}
 			if(runPtr->yEnd==end && runPtr->yStart==start){
-				exit(EXIT_FAILURE);
+				runPtr->state=state;
+				return runPtr;
 			}
+			
 				
 		
 		}
