@@ -12,6 +12,7 @@
 #define ROWS_IN_INTERVAL 8
 #define DATA_ROWS 640
 #define DATA_COLUMNS 8
+#define EPSILON 0.00001
 
 
 
@@ -530,6 +531,11 @@ void updateCell(IC* icMap,IC* icMeas){
 	//we calculate the new occupancy probability!
 	float pt=icMeas->state;
 	float p1t=icMap->state;
+	if(pt<EPSILON)pt=EPSILON;
+	if(pt>1-EPSILON)pt=1-EPSILON;
+	if(p1t<EPSILON)p1t=EPSILON;
+	if(p1t>1-EPSILON)p1t=1-EPSILON;
+	
 	
 	float newP=pt*p1t/((1-pt)*(1-p1t)+pt*p1t);  //equation 14 in "Interval based representation of occupancy information ...0"
 	icMap->state=newP;
@@ -541,10 +547,10 @@ void updateCell(IC* icMap,IC* icMeas){
 void assocAndUpdate(IC** map, IC** measurement){
 	for(int x=0;x<curICArraySize;x++){
 		IC* icMap=map[x];
-		if(x==21){
-		printf("BEFORE 21!!");
-		printList(map[x]);
-		printList(measurement[x]);}
+/*		if(x==68){*/
+/*		printf("BEFORE 21!!");*/
+/*		printList(map[x]);*/
+/*		printList(measurement[x]);}*/
 		for(IC* icMeas=measurement[x];icMeas!=NULL;icMeas=icMeas->next){
 			IC* icAssoc=associateBoarder(map,icMeas,x);
 			if(icAssoc!=NULL){
@@ -702,7 +708,7 @@ int stepsize=1;
 
 
 		//free(curICArray);
-		exit(EXIT_SUCCESS);
+/*		exit(EXIT_SUCCESS);*/
 		
 		
 		
@@ -719,79 +725,6 @@ int stepsize=1;
 	exit(EXIT_SUCCESS);	
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*	PGMDataFloat* pgmOut = (PGMDataFloat*)malloc(sizeof(PGMDataFloat));
-	pgmOut->col=400;
-
-	pgmOut->row=1280;
-
-	pgmOut->matrix=allocate_dynamic_matrix(1280, 400);
-	pgmOut->max_gray=255;
-
-	
-	for(int i=0;i<1280;i++){
-		for(int j=0;j<400;j++){
-			pgmOut->matrix[i*pgmOut->col+j]=0;
-
-		}
-	}
-
-	
-
-	int rows=50;
-
-	int cols=100;
-	for(int y=0;y<pgmOut->col;y=y+300){
-		for(int x=100;x<pgmOut->row;x=x+200){
-			for(int i=x; i<x+rows;i++){
-				for(int j=y;j<y+cols;j++){
-					pgmOut->matrix[i*pgmOut->col+j]=0.95f;
-				}
-
-	
-			}
-		}
-	}
-
-
-	writePGM("400x1280.pgm",resizeAndInvertProbabilitiesBackToPicture(pgmOut));*/
-
-
-
-
-
-
-
-
 
 
 

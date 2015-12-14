@@ -6,10 +6,12 @@
 #include "ICList.h"
 
 
+#define EPSILON 0.00001
+
 void printList(IC* head){
 	for(IC* ptr=head;ptr!=NULL;ptr=ptr->next){
 		int len=(ptr->yEnd-ptr->yStart);
-		printf("|len: %d;st: %f; start:%.1f,end:%.1f|",len,ptr->state,ptr->yStart,ptr->yEnd);
+		printf("|len: %d;st: %f; start:%f,end:%f|",len,ptr->state,ptr->yStart,ptr->yEnd);
 	}
 	printf("\n");
 
@@ -65,12 +67,12 @@ IC* insertAfter(IC* thisOne){
 
 IC* insertInto(IC* head,float start,float end,float state){
 /*printf("InsertINTO: list: ");*/
-/*printList(head);*/
+printList(head);
 /*printf(" with start= %d , end= %d ; state= %f \n",start,end,state);*/
 //visualisation: out of |----runptr---------|
 // is made 				|rnPtr|midl|lastHalf|
 	for(IC* runPtr=head;runPtr!=NULL;runPtr=runPtr->next){
-		if(runPtr->state!=state){
+		//if(runPtr->state!=state){
 		float oldEnd=runPtr->yEnd;
 			if(runPtr->yEnd>=end && runPtr->yStart<=start){
 				IC* middleOne = insertAfter(runPtr);
@@ -110,10 +112,32 @@ IC* insertInto(IC* head,float start,float end,float state){
 				runPtr->state=state;
 				return runPtr;
 			}
+			if(fabs(runPtr->yEnd-end)<EPSILON && fabs(runPtr->yStart-start)<EPSILON && fabs(runPtr->state-state)<EPSILON){
+				return runPtr;
+			}
 			
 				
 		
-		}
+		//}
+	}
+	for(IC* runPtr=head;runPtr!=NULL;runPtr=runPtr->next){
+		if(runPtr->yStart<=start && runPtr->yEnd>=start){
+				printf("used!\n runPtr->yEnd=%f ,start = %f,   state= %f\n",runPtr->yEnd,runPtr->yStart,runPtr->state);
+				printf("used!\n runPtr->yEnd=%f ,start = %f,   state= %f\n",end,start,state);
+				exit(EXIT_FAILURE);
+					//cut this piece and insert new one!
+	/*				runPtr->yEnd=start;*/
+	/*				IC* newOne=insertAfter(runPtr);*/
+	/*				newOne->state=state;*/
+	/*				newOne->yEnd=end;*/
+	/*				newOne->yStart=start;*/
+	/*				while(newOne->next!=NULL && newOne->next->yEnd < end){*/
+	/*					deleteAfter(newOne);*/
+	/*				}*/
+	/*				if(newOne->next!=NULL){*/
+	/*					newOne->next->yStart=end;*/
+	/*				}*/
+				}
 	}
 	
 
