@@ -100,7 +100,8 @@ void writeICtoPGM(IC** icArray, int row_size, int col_size,const char *outputFil
 		IC* runPtr=accessIC(icArray,row/ROWS_IN_INTERVAL);
 		for(int z=0;z<col_size;runPtr=runPtr->next){
 			if(runPtr==NULL){
-				fprintf(stderr,"data structure is not dense - there is not everything ; \n col=%d",z);
+				
+				fprintf(stderr,"data structure is not dense - there is not everything ; \n col=%d   row = %d\n\n",z,row/ROWS_IN_INTERVAL);
 			}
 			
 			float dif=runPtr->yEnd-runPtr->yStart;
@@ -165,7 +166,7 @@ IC** convertPgm(const char *inputFileName,const char *outputFileName,IC** newICA
 		setIC(newICArray,x,compressPCRow(pcarray[x],pgmpicture2->col,accessIC(newICArray,x)));
 	}
 	
-
+	
 //	printf("achtung: yEnd: %.0f, yStart: %.0f",accessIC(newICArray,0)->yEnd,accessIC(newICArray,0)->yStart);
 //	printf("----> pointer should be : %p",newICArray[0]);
 	writeICtoPGM(newICArray,pgmpicture2->row,pgmpicture2->col,outputFileName);
@@ -246,9 +247,10 @@ float b(float x1, float y1, float x2, float y2){
 		float ret=top/bot;
 		return ret;
 	}
+	bot=EPSILON;
 	
 	fprintf(stderr,"b calculation failed! (bot=%f) , x1=%f : x2=%f \n",bot,x1,x2);
-	exit(EXIT_FAILURE);
+	return top/bot;
 }
 
 float m(float x1, float y1, float x2, float y2){
@@ -258,8 +260,9 @@ float m(float x1, float y1, float x2, float y2){
 		float ret= top/bot;
 		return ret;
 	}
+	bot=EPSILON;
 	fprintf(stderr,"m calculation failed! \n");
-	exit(EXIT_FAILURE);
+	return top/bot;
 }
 
 void rot(float* x, float* y, float angle, int xOffset, int yOffset){
@@ -442,8 +445,10 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 					insertInto(accessIC(whiteICArray,interval),startX,endX,accessIC(runArray,i)->state);
 				}
 				tidyUpList(accessIC(whiteICArray,interval));			//check structure for slow gaps, which came from rotating everything
-/*				printf("%d ",interval);*/
-/*				printList(accessIC(whiteICArray,interval));*/
+/*				if(interval==43){*/
+/*					printf("                       %d ",interval);*/
+/*					printList(accessIC(whiteICArray,interval));*/
+/*				}*/
 			}
 			
 			
@@ -470,9 +475,9 @@ IC* associateBoarder(IC** map,IC* icMeas,int curIndex){
 		stateDev= fabs(icMap->state-icMeas->state);
 		if(startDev+endDev<0.4 && stateDev<0.2){
 			//associated!
-			if(curIndex==21){
-			printf("startDev %f, endDev= %f,stateDev= %f\n",startDev,endDev,stateDev);
-			printf("associated! ->\n icMap start: %.1f; end: %.1f; state: %.1f",icMap->yStart,icMap->yEnd,icMap->state);}
+/*			if(curIndex==10){*/
+/*			printf("startDev %f, endDev= %f,stateDev= %f\n",startDev,endDev,stateDev);*/
+/*			printf("associated! ->\n icMap start: %.1f; end: %.1f; state: %.1f",icMap->yStart,icMap->yEnd,icMap->state);}*/
 			return icMap;
 		}
 	}
@@ -506,25 +511,28 @@ IC* associateBoarder(IC** map,IC* icMeas,int curIndex){
 /*	}*/
 	//try above and below!?
 
-	printf("notAssociated!\n");
-	printf("startDev %f, endDev= %f,stateDev= %f\n icMeas->yStart = %f ; icMeas->yEnd= %f ; state= %f\n\n",startDev,endDev,stateDev,icMeas->yStart,icMeas->yEnd,icMeas->state);
+/*	printf("notAssociated!\n");*/
+/*	printf("startDev %f, endDev= %f,stateDev= %f\n icMeas->yStart = %f ; icMeas->yEnd= %f ; state= %f\n\n",startDev,endDev,stateDev,icMeas->yStart,icMeas->yEnd,icMeas->state);*/
 	return NULL;
 }
 
 void updateBoarder(IC* icAssoc,IC* icMeas,int x){
 	//we should compute the kallman filter update step!
 	//but we dont have sigma or other things we need. so i'll weigh it in my own style
-	if(x==21){
-		printf("icAssoc->ystart= %f,  icMeas_>start= %f \nicAssoc->yend= %f,  icMeas_>end= %f\n",icAssoc->yStart,icMeas->yStart,icAssoc->yEnd,icMeas->yEnd);
-	}
+/*	if(x==10){*/
+/*		printf("\nUPDATING : icAssoc->ystart= %f,  icMeas_>start= %f \nicAssoc->yend= %f,  icMeas_>end= %f\n",icAssoc->yStart,icMeas->yStart,icAssoc->yEnd,icMeas->yEnd);*/
+/*	}*/
 	if(icAssoc->yEnd!=curArrayWidth-1) icAssoc->yEnd=(icAssoc->yEnd*0.4+icMeas->yEnd*0.6);
 	if(icAssoc->next!=NULL)icAssoc->next->yStart=icAssoc->yEnd;
 	if(icAssoc->yStart!=0)icAssoc->yStart=(icAssoc->yStart*0.4+icMeas->yStart*0.6);	
 	if(icAssoc->prev!=NULL)icAssoc->prev->yEnd=icAssoc->yStart;
 	
-	if(x==21){
-		printf("\nIT IS NOW:: icAssoc->ystart= %f, icAssoc->yend= %f,  \n\n",icAssoc->yStart,icAssoc->yEnd);
-	}
+	
+/*	if(x==10){*/
+/*		printf("\nIT IS NOW:: icAssoc->ystart= %f, icAssoc->yend= %f,  \n\n",icAssoc->yStart,icAssoc->yEnd);*/
+/*		if(icAssoc->prev!=NULL)*/
+/*		printf("\nPREV IS NOW:: icAssoc->prev->ystart= %f, icAssoc->prev->yend= %f,  \n\n",icAssoc->prev->yStart,icAssoc->prev->yEnd);*/
+/*	}*/
 }
 
 void updateCell(IC* icMap,IC* icMeas){
@@ -547,28 +555,31 @@ void updateCell(IC* icMap,IC* icMeas){
 void assocAndUpdate(IC** map, IC** measurement){
 	for(int x=0;x<curICArraySize;x++){
 		IC* icMap=map[x];
-/*		if(x==68){*/
-/*		printf("BEFORE 21!!");*/
+/*		if(x==10){*/
+/*		printf("BEFORE 10!!");*/
 /*		printList(map[x]);*/
+/*				printf("Meas at 10 \n\n");*/
 /*		printList(measurement[x]);}*/
 		for(IC* icMeas=measurement[x];icMeas!=NULL;icMeas=icMeas->next){
 			IC* icAssoc=associateBoarder(map,icMeas,x);
 			if(icAssoc!=NULL){
 				updateBoarder(icAssoc,icMeas,x);
 			}else{
-				printf("before: ->   ");			
-				printList(map[x]);
+/*				printf("before: ->   ");			*/
+/*				printList(map[x]);*/
 				icAssoc=insertInto(map[x],icMeas->yStart,icMeas->yEnd,icMeas->state);
-				printf("inserted! -> ");
-				printList(map[x]);
+/*				printf("inserted! -> ");*/
+/*				printList(map[x]);*/
 			}
 			while(icMap!=NULL && icMap->yEnd<=icAssoc->yEnd){
 				updateCell(icMap,icMeas);
 				icMap=icMap->next;
 			}
 		}
-		printf("%d ",x);
-		printList(map[x]);
+/*		if(x==10){*/
+/*			printf("\n\n\n%d AFTER AFTER:::",x);*/
+/*			printList(map[x]);*/
+/*		}*/
 	}
 }
 
@@ -582,7 +593,7 @@ void freeICArray(IC** array,int size){
 }
 
 int main( int argc,char** argv){
-int stepsize=1;
+int stepsize=8;
 	curICArray=NULL;
 	curICArraySize=0;
 	shiftProgress=0;
@@ -602,7 +613,7 @@ int stepsize=1;
 
 
 
-	float angle=6.0;
+	float angle=4.0;
 	
 	//create 1st pic -> start position!
 	

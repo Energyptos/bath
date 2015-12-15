@@ -56,7 +56,8 @@ IC* insertAfter(IC* thisOne){
 		insertOne->next = thisOne->next;	//adjust nextPointer of new Element (if there is one) 
 	//TODO: why are we landing here!!?!??
 	//printf("next?! thisOne->next yend:%p",thisOne->next);
-		//insertOne->next->prev=insertOne;
+		if(insertOne->next->prev!=NULL)
+		insertOne->next->prev=insertOne;
 	}
 	thisOne->next=insertOne;	  			//adjust next pointer of thisOne
 	insertOne->prev=thisOne;  			//adjust prev Pointer
@@ -67,7 +68,7 @@ IC* insertAfter(IC* thisOne){
 
 IC* insertInto(IC* head,float start,float end,float state){
 /*printf("InsertINTO: list: ");*/
-printList(head);
+/*printList(head);*/
 /*printf(" with start= %d , end= %d ; state= %f \n",start,end,state);*/
 //visualisation: out of |----runptr---------|
 // is made 				|rnPtr|midl|lastHalf|
@@ -121,23 +122,29 @@ printList(head);
 		//}
 	}
 	for(IC* runPtr=head;runPtr!=NULL;runPtr=runPtr->next){
-		if(runPtr->yStart<=start && runPtr->yEnd>=start){
-				printf("used!\n runPtr->yEnd=%f ,start = %f,   state= %f\n",runPtr->yEnd,runPtr->yStart,runPtr->state);
-				printf("used!\n runPtr->yEnd=%f ,start = %f,   state= %f\n",end,start,state);
-				exit(EXIT_FAILURE);
-					//cut this piece and insert new one!
-	/*				runPtr->yEnd=start;*/
-	/*				IC* newOne=insertAfter(runPtr);*/
-	/*				newOne->state=state;*/
-	/*				newOne->yEnd=end;*/
-	/*				newOne->yStart=start;*/
-	/*				while(newOne->next!=NULL && newOne->next->yEnd < end){*/
-	/*					deleteAfter(newOne);*/
-	/*				}*/
-	/*				if(newOne->next!=NULL){*/
-	/*					newOne->next->yStart=end;*/
-	/*				}*/
-				}
+		if(runPtr->yStart<=start && runPtr->yEnd>start){
+/*			printf("used!\n runPtr->yEnd=%f ,start = %f,   state= %f\n",runPtr->yEnd,runPtr->yStart,runPtr->state);*/
+/*			printf("used!\n runPtr->yEnd=%f ,start = %f,   state= %f\n",end,start,state);*/
+			
+			//cut this piece and insert new one!
+			runPtr->yEnd=start;
+			IC* newOne=insertAfter(runPtr);
+			newOne->state=state;
+			newOne->yEnd=end;
+			newOne->yStart=start;
+			while(newOne->next!=NULL && newOne->next->yEnd < end){
+/*				printf("newOne->next->yEND===== %f\n\n",newOne->next->yEnd);*/
+				deleteAfter(newOne);
+/*				printf("2newOne->next->yEND===== %f\n\n",newOne->next->yEnd);*/
+			}
+			if(newOne->next!=NULL){
+				newOne->next->yStart=end;
+			}
+/*			printf("--------------------");*/
+/*			printList(head);*/
+			return newOne;
+		}
+		
 	}
 	
 
