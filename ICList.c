@@ -1,7 +1,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <math.h>
 
 #include "ICList.h"
 
@@ -109,7 +109,7 @@ IC* insertInto(IC* head,float start,float end,float state){
 				runPtr=lastHalf;
 				return lastHalf;
 			}
-			if(runPtr->yEnd==end && runPtr->yStart==start){
+			if(fabs(runPtr->yEnd-end)<EPSILON && fabs(runPtr->yStart-start)<EPSILON){
 				runPtr->state=state;
 				return runPtr;
 			}
@@ -149,14 +149,14 @@ IC* insertInto(IC* head,float start,float end,float state){
 	
 
 }
-
+ 
 
 void tidyUpList(IC* head){
 	int min_whitespace=3;
 	for(IC* runPtr=head;runPtr!=NULL;runPtr=runPtr->next){
 /*		if(runPtr->yEnd-runPtr->yStart<=0){*/
-/*			runPtr=runPtr->prev;*/
-/*			deleteThis(runPtr->next);*/
+/*			deleteThis(runPtr);*/
+/*			runPtr=head;*/
 /*			continue;	*/
 /*		}*/
 		if(runPtr->state<0.4){
@@ -172,7 +172,8 @@ void tidyUpList(IC* head){
 				}
 			}
 		}
-		if(runPtr->next!=NULL && runPtr->next->state==runPtr->state){
+		if(runPtr->next!=NULL && fabs(runPtr->next->state-runPtr->state)<EPSILON){
+			printf("runPtr->next->state = %f,   runPtr->state= %f;   runPtr->yStart=%f:   DELETE!!!!!!!!\n\n\n",runPtr->next->state,runPtr->state,runPtr->yStart);
 			runPtr->yEnd=runPtr->next->yEnd;
 			deleteThis(runPtr->next);
 			continue;
