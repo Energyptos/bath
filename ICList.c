@@ -75,7 +75,7 @@ IC* insertInto(IC* head,float start,float end,float state){
 	for(IC* runPtr=head;runPtr!=NULL;runPtr=runPtr->next){
 		//if(runPtr->state!=state){
 		float oldEnd=runPtr->yEnd;
-			if(runPtr->yEnd>=end && runPtr->yStart<=start){
+			if(runPtr->yEnd>end && runPtr->yStart<start){
 				IC* middleOne = insertAfter(runPtr);
 				middleOne->yStart=start;
 				middleOne->yEnd=end;

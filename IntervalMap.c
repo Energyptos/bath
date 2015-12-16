@@ -45,7 +45,7 @@ void processData(float* data, int x, int y, PC** pcArray, int col, int row){
 	pcArray[scaledX][y].y=y;								//seems to make no sense, but: pcArray[y] will contain the weighed y value. (y wont be an integer.)
 	
 	if(maxValue>0.6){
-		pcArray[scaledX][y].state=maxValue;	
+		pcArray[scaledX][y].state=1;	
 		if(maxValue<0 || maxValue>1)printf("maxValue= %f\n\n\n",maxValue);	
 		//printf("state one is put!!!!\n");
 	}
@@ -98,15 +98,16 @@ void writeICtoPGM(IC** icArray, int row_size, int col_size,const char *outputFil
 	
 	for(int row=0;row<row_size;row++){
 		IC* runPtr=accessIC(icArray,row/ROWS_IN_INTERVAL);
-		if(row%ROWS_IN_INTERVAL==0)printList(icArray[row/ROWS_IN_INTERVAL]);
 		for(int z=0;z<col_size;runPtr=runPtr->next){
 			if(runPtr==NULL){
 				fprintf(stderr,"data structure is not dense - there is not everything ; \n col=%d   row = %d\n\n",z,row/ROWS_IN_INTERVAL);
 			}
 			
 			float dif=runPtr->yEnd-runPtr->yStart;
+/*							printf("runPtr->yStart %f, runPtr->yEnd= %f\n",runPtr->yStart,runPtr->yEnd);*/
 			for(int y=0;y<=dif;y++){
 				//for(int offset=0;offset<ROWS_IN_INTERVAL;offset++)
+
 				file[(row)*col_size+z]=runPtr->state;
 				z++;
 			}
@@ -125,7 +126,6 @@ void writeICtoPGM(IC** icArray, int row_size, int col_size,const char *outputFil
 	free(tmp);
 	free(file);
 	free(pgmOut);
-			
 }
 
 
@@ -169,7 +169,6 @@ IC** convertPgm(const char *inputFileName,const char *outputFileName,IC** newICA
 	
 //	printf("achtung: yEnd: %.0f, yStart: %.0f",accessIC(newICArray,0)->yEnd,accessIC(newICArray,0)->yStart);
 //	printf("----> pointer should be : %p",newICArray[0]);
-	printf("THIS is 172!\n\n");
 	writeICtoPGM(newICArray,pgmpicture2->row,pgmpicture2->col,outputFileName);
 	
 	
@@ -454,9 +453,6 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 			
 			
 			free(lines);
-			
-			
-			
 		}
 	}
 	freeICArray(curICArray,curICArraySize);
@@ -527,7 +523,7 @@ void updateCell(IC* icMap,IC* icMeas){
 void assocAndUpdate(IC** map, IC** measurement){
 	for(int x=0;x<curICArraySize;x++){
 		IC* icMap=map[x];
-/*		if(x==10){*/
+/*		if(x==0){*/
 /*		printf("BEFORE 10!!");*/
 /*		printList(map[x]);*/
 /*				printf("Meas at 10 \n\n");*/
@@ -548,7 +544,7 @@ void assocAndUpdate(IC** map, IC** measurement){
 				icMap=icMap->next;
 			}
 		}
-/*		if(x==10){*/
+/*		if(x==0){*/
 /*			printf("\n\n\n%d AFTER AFTER:::",x);*/
 /*			printList(map[x]);*/
 /*		}*/
@@ -642,9 +638,8 @@ int stepsize=8;
 			curICArray[0]->yEnd=pgmOut->col-1;
 			curICArray[0]->state=0.2;		
 		}
-		printf("THIS is 668!\n\n");
 		writeICtoPGM(curICArray,640,400,"afterShift.pgm");
-/*		system("xdg-open afterShift.pgm");*/
+		system("xdg-open afterShift.pgm");
 
 				//HERE WITH INDEX SHIFT!
 /*		int oldShift=shiftProgress;*/
@@ -661,7 +656,7 @@ int stepsize=8;
 		
 			
 	
-/*		sleep(1);*/
+
 		
 		
 //Pepare "Sensor"-Values for algorithm. it would not be relevant if we would get real data -> so it doesnt take time in simulation!
@@ -685,16 +680,13 @@ int stepsize=8;
 		
 		//--> done with the convertPGM method 
 		IC** measIC = convertPgm("tmpOut.pgm","pgmOutPicture.pgm",measIC);
-/*				system("xdg-open pgmOutPicture.pgm");*/
-
-
+				system("xdg-open pgmOutPicture.pgm");
 
 		//4. Association and update
 		assocAndUpdate(curICArray,measIC);
 		//5. Merge
-		printf("THIS is 718!\n\n");
 		writeICtoPGM(curICArray,640,400,"afterAaU.pgm");
-/*		system("xdg-open afterAaU.pgm");*/
+		system("xdg-open afterAaU.pgm");
 
 
 
@@ -704,8 +696,7 @@ int stepsize=8;
 		if(((pgmpic->row-640)/stepsize)-step==20)
 			exit(EXIT_SUCCESS);
 		
-		
-		
+				sleep(1);
 		
 	}
 	
