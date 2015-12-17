@@ -14,6 +14,8 @@
 #define DATA_COLUMNS 8
 #define EPSILON 0.00001
 
+#define VISUAL 0
+
 
 
 	//static IC** curICArray;
@@ -50,6 +52,7 @@ void processData(float* data, int x, int y, PC** pcArray, int col, int row){
 		//printf("state one is put!!!!\n");
 	}
 	else if(maxValue<0.4)pcArray[scaledX][y].state=0;
+	//else if(maxValue<0)pcArray[scaledX][y].state=0;
 	else pcArray[scaledX][y].state=0.5;
 	pcArray[scaledX][y].xPosition=maxValuesX;
 }
@@ -163,7 +166,7 @@ IC** convertPgm(const char *inputFileName,const char *outputFileName,IC** newICA
 	
 	
 	for(int x=0; x<pgmpicture2->row/ROWS_IN_INTERVAL; x++){
-		setIC(newICArray,x,compressPCRow(pcarray[x],pgmpicture2->col,accessIC(newICArray,x)));
+		newICArray[x]=compressPCRow(pcarray[x],pgmpicture2->col,newICArray[x]);
 	}
 	
 	
@@ -183,7 +186,6 @@ IC** convertPgm(const char *inputFileName,const char *outputFileName,IC** newICA
 	free(pgmpicture2);
 	
 	deallocate_dynamic_matrix(pgmpicture.matrix,pgmpicture.row);
-	printf("newArray 0 ystart = %f\n\n",newICArray[0]->yStart);
 	return newICArray;
 	
 }
@@ -358,6 +360,29 @@ float computeEndX(Line line, int exactInterval,int width){
 	return endX;
 }
 
+void shiftStructure(IC** curICArray,int stepsize,int width){
+	int shiftSize = stepsize/ROWS_IN_INTERVAL;
+	shiftOffset=shiftOffset+(stepsize%ROWS_IN_INTERVAL)/ROWS_IN_INTERVAL;
+	if(shiftOffset>1){
+		shiftOffset-=1;
+		shiftSize++;
+	};
+	for(int shift=0;shift<shiftSize;shift++){
+		for(int x=curICArraySize-1;x>=1;x--){
+			curICArray[x]=curICArray[x-1];
+/*				tidyUpList(curICArray[x]);*/
+/*				printf("%d ",x-1);*/
+/*				printList(curICArray[x]);*/
+		}
+		deleteWholeList(curICArray[0]); //free lowest row, we dont need it anymore
+		curICArray[0]=insertAfter(NULL);
+		curICArray[0]->yStart=0;
+		curICArray[0]->yEnd=width-1;
+		curICArray[0]->state=0.2;		
+	}
+}
+
+
 void rotateStructure(IC** icArray, float angle, int width, int height,IC** whiteICArray){
 
 
@@ -456,7 +481,7 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 		}
 	}
 	freeICArray(curICArray,curICArraySize);
-	curICArray=whiteICArray;
+	icArray=whiteICArray;
 
 
 }
@@ -470,9 +495,9 @@ IC* associateBoarder(IC** map,IC* icMeas,int curIndex){
 		startDev=fabs(icMap->yStart-icMeas->yStart)/curArrayWidth;
 		endDev=fabs(icMap->yEnd-icMeas->yEnd)/curArrayWidth;
 		stateDev= fabs(icMap->state-icMeas->state);
-		if(startDev+endDev<0.4 && stateDev<0.2){
+		if(startDev+endDev<0.2 && stateDev<0.2){
 			//associated!
-/*			if(curIndex==10){*/
+/*			if(curIndex==25){*/
 /*			printf("startDev %f, endDev= %f,stateDev= %f\n",startDev,endDev,stateDev);*/
 /*			printf("associated! ->\n icMap start: %.1f; end: %.1f; state: %.1f",icMap->yStart,icMap->yEnd,icMap->state);}*/
 			return icMap;
@@ -523,10 +548,10 @@ void updateCell(IC* icMap,IC* icMeas){
 void assocAndUpdate(IC** map, IC** measurement){
 	for(int x=0;x<curICArraySize;x++){
 		IC* icMap=map[x];
-/*		if(x==0){*/
-/*		printf("BEFORE 10!!");*/
+/*		if(x==25){*/
+/*		printf("BEFORE 25!!");*/
 /*		printList(map[x]);*/
-/*				printf("Meas at 10 \n\n");*/
+/*				printf("Meas at 25 \n\n");*/
 /*		printList(measurement[x]);}*/
 		for(IC* icMeas=measurement[x];icMeas!=NULL;icMeas=icMeas->next){
 			IC* icAssoc=associateBoarder(map,icMeas,x);
@@ -544,7 +569,7 @@ void assocAndUpdate(IC** map, IC** measurement){
 				icMap=icMap->next;
 			}
 		}
-/*		if(x==0){*/
+/*		if(x==25){*/
 /*			printf("\n\n\n%d AFTER AFTER:::",x);*/
 /*			printList(map[x]);*/
 /*		}*/
@@ -553,11 +578,11 @@ void assocAndUpdate(IC** map, IC** measurement){
 
 
 void freeICArray(IC** array,int size){
-	for (int i = 0;  i < size;  i += 1)
+	for (int i = size-1;  i >=0;  i -= 1)
 		{
 			deleteWholeList(array[i]);
 		}
-	free(array);
+	//free(array);
 }
 
 int main( int argc,char** argv){
@@ -579,8 +604,9 @@ int stepsize=8;
 	pgmOut->matrix=allocate_dynamic_matrix(640, 400);
 	pgmOut->max_gray=255;
 
-
-	float angleArray[20]={0,0,4,4,-4,0,-4,0,0,-4,0,0,0,0,0,0,0,0,0,0};
+	IC** measIC;
+//////////////////////////////////////////////////////SENSORSIMULATION////////////////////////////////////////////////////////////////////		
+	float angleArray[30]={0,0,4,4,-4,0,-4,0,0,-8,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0};
 	float angle=4.0;
 	
 	//create 1st pic -> start position!
@@ -594,78 +620,38 @@ int stepsize=8;
 	writePGM("tmpOut.pgm",pgmOut);
 	//NOW we are at the part for interpreting the simulated "sensor"-values.
 	convertPgm("tmpOut.pgm","pgmOutPicture.pgm",curICArray);
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\SENSORSIMULATION END\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\	
+	
+	
+	
 	
 	
 	
 	
 	for(int step=((pgmpic->row-640)/stepsize); step >=0;step--){
-
+		printf("Frame %d\n",((pgmpic->row-640)/stepsize)-step);
 
 		angle=angleArray[((pgmpic->row-640)/stepsize)-step];
 /*		system("xdg-open pgmOutPicture.pgm");*/
 		
 
 	//1. compensate own vehicle motion
-	//2.Prediction of other Objects
-			
+	//2. Prediction of other Objects
 		//Rotation: 
-
 		IC** whiteICArray = makeNewWhite(curICArraySize,pgmOut->col); //tested.
 		rotateStructure(curICArray,angle/360*3.142,pgmOut->col,pgmOut->row,whiteICArray);
+		//Longitudinal:	
+		shiftStructure(curICArray,stepsize,pgmOut->col);
 		
 		
-		
-		
-//Longitudinal:	
-	
-		//HERE with stucture shift!
-		int shiftSize = stepsize/ROWS_IN_INTERVAL;
-		shiftOffset=shiftOffset+(stepsize%ROWS_IN_INTERVAL)/ROWS_IN_INTERVAL;
-		if(shiftOffset>1){
-			shiftOffset-=1;
-			shiftSize++;
-		};
-		for(int shift=0;shift<shiftSize;shift++){
-			for(int x=curICArraySize-1;x>=1;x--){
-				curICArray[x]=curICArray[x-1];
-/*				tidyUpList(curICArray[x]);*/
-/*				printf("%d ",x);*/
-/*				printList(curICArray[x]);*/
-			}
-			deleteWholeList(curICArray[0]); //free lowest row, we dont need it anymore
-			curICArray[0]=insertAfter(NULL);
-			curICArray[0]->yStart=0;
-			curICArray[0]->yEnd=pgmOut->col-1;
-			curICArray[0]->state=0.2;		
-		}
 		writeICtoPGM(curICArray,640,400,"afterShift.pgm");
-		system("xdg-open afterShift.pgm");
-
-				//HERE WITH INDEX SHIFT!
-/*		int oldShift=shiftProgress;*/
-/*		//shiftProgress+=stepsize/ROWS_IN_INTERVAL;*/
-/*		shiftOffset=shiftOffset+(stepsize%ROWS_IN_INTERVAL)/ROWS_IN_INTERVAL;*/
-/*		if(shiftOffset>1){*/
-/*			shiftOffset-=1;*/
-/*			shiftProgress++;*/
-/*		};*/
-/*		int diffShift=shiftProgress-oldShift;*/
-
-
+		if(VISUAL)system("xdg-open afterShift.pgm");
 
 		
-			
-	
-
-		
-		
+//////////////////////////////////////////////////////SENSORSIMULATION////////////////////////////////////////////////////////////////////		
 //Pepare "Sensor"-Values for algorithm. it would not be relevant if we would get real data -> so it doesnt take time in simulation!
-		printf("Frame %d\n",((pgmpic->row-640)/stepsize)-step);
-	
 	//Rotation - Simulation
 		rotatePGMData(pgmpic,angle/360*3.142,640+stepsize*step);
-
-
 	//Longitudinal movement - simulation
 		for (int i = 640+stepsize*step; i>=stepsize*step; i--){
 			for (int j = 0; j < pgmpic->col; ++j) {
@@ -674,35 +660,49 @@ int stepsize=8;
 		}		
 		writePGM("tmpOut.pgm",pgmOut);
 /*		system("xdg-open tmpOut.pgm");*/
-		
-		
-		//3.Feature Extraction	
-		
+//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\SENSORSIMULATION END\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+	//3.Feature Extraction	
 		//--> done with the convertPGM method 
-		IC** measIC = convertPgm("tmpOut.pgm","pgmOutPicture.pgm",measIC);
-				system("xdg-open pgmOutPicture.pgm");
+		measIC = convertPgm("tmpOut.pgm","pgmOutPicture.pgm",measIC);
+		if(VISUAL)system("xdg-open pgmOutPicture.pgm");
 
-		//4. Association and update
+	//4. Association and update
 		assocAndUpdate(curICArray,measIC);
-		//5. Merge
+		freeICArray(measIC,curICArraySize);
+		
 		writeICtoPGM(curICArray,640,400,"afterAaU.pgm");
-		system("xdg-open afterAaU.pgm");
-
-
-
-
+		if(VISUAL)system("xdg-open afterAaU.pgm");
+	//5. Merge
+		//would be tidyUpList, but we use it already!
 
 		//free(curICArray);
-		if(((pgmpic->row-640)/stepsize)-step==20)
-			exit(EXIT_SUCCESS);
+
 		
-				sleep(1);
-		
+			if(((pgmpic->row-640)/stepsize)-step==2){
+				for (int i = curICArraySize-1; i >=0; i -= 1)
+					{
+						//printf("%d  ",i);
+						//printList(curICArray[i]);
+						deleteWholeList(whiteICArray[i]);
+					}
+					free(whiteICArray);
+			
+				break;
+			}
+			
+		if(VISUAL)sleep(2);
 	}
-	
 	//FREE all ressources
-	freeICArray(curICArray,curICArraySize);
-	
+	for (int i = curICArraySize-1; i >0; i -= 1)
+	{
+		//printf("%d  ",i);
+		//printList(curICArray[i]);
+		deleteWholeList(curICArray[i]);
+	}
+	free(curICArray);
+/*	freeICArray(curICArray,curICArraySize);*/
+
 	deallocate_dynamic_matrix(pgmpic->matrix, pgmpic->row);
 	//free(pgmpic);
 	deallocate_dynamic_matrix(pgmOut->matrix, pgmOut->row);

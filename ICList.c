@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -209,13 +208,11 @@ void itemsInList(IC* head){
 }
 
 void deleteWholeList(IC* start){
-	while(start!=NULL){
-		IC* tmp =start->next;
-		//printf("d%.1f ",start->state);
+	if(start!=NULL){
+		deleteWholeList(start->next);
 		free(start);
-		//deleteThis(start);
-		start=tmp;
 	}
+	return;
 }
 
 
