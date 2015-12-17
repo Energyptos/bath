@@ -481,7 +481,7 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 		}
 	}
 	freeICArray(curICArray,curICArraySize);
-	icArray=whiteICArray;
+	curICArray=whiteICArray;
 
 
 }
@@ -648,7 +648,7 @@ int stepsize=8;
 		if(VISUAL)system("xdg-open afterShift.pgm");
 
 		
-//////////////////////////////////////////////////////SENSORSIMULATION////////////////////////////////////////////////////////////////////		
+		//////////////////////////////////////////////////////SENSORSIMULATION////////////////////////////////////////////////////////////////////		
 //Pepare "Sensor"-Values for algorithm. it would not be relevant if we would get real data -> so it doesnt take time in simulation!
 	//Rotation - Simulation
 		rotatePGMData(pgmpic,angle/360*3.142,640+stepsize*step);
@@ -660,7 +660,7 @@ int stepsize=8;
 		}		
 		writePGM("tmpOut.pgm",pgmOut);
 /*		system("xdg-open tmpOut.pgm");*/
-//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\SENSORSIMULATION END\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+		//\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\SENSORSIMULATION END\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 	//3.Feature Extraction	
 		//--> done with the convertPGM method 
@@ -670,7 +670,6 @@ int stepsize=8;
 	//4. Association and update
 		assocAndUpdate(curICArray,measIC);
 		freeICArray(measIC,curICArraySize);
-		
 		writeICtoPGM(curICArray,640,400,"afterAaU.pgm");
 		if(VISUAL)system("xdg-open afterAaU.pgm");
 	//5. Merge
@@ -680,17 +679,15 @@ int stepsize=8;
 
 		
 			if(((pgmpic->row-640)/stepsize)-step==2){
-				for (int i = curICArraySize-1; i >=0; i -= 1)
-					{
-						//printf("%d  ",i);
-						//printList(curICArray[i]);
-						deleteWholeList(whiteICArray[i]);
-					}
-					free(whiteICArray);
-			
-				break;
+/*				for (int i = curICArraySize-1; i >0; i -= 1)*/
+/*				{*/
+/*					//printf("%d  ",i);*/
+/*					//printList(curICArray[i]);*/
+/*					deleteWholeList(whiteICArray[i]);*/
+/*				}*/
+/*				free(whiteICArray);*/
+				break;		
 			}
-			
 		if(VISUAL)sleep(2);
 	}
 	//FREE all ressources
