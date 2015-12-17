@@ -34,27 +34,26 @@ int main (int argc, char *argv[])
 
 
 
-/*	list= insertAfter(NULL);*/
-/*	IC* head=list;*/
-/*	list->state=1;*/
-/*	for(int x=0;x<101;x++){*/
-/*		list=insertAfter(list);*/
-/*		printf("%p should be different\n",list);*/
-/*		list->state=x;*/
-/*		list->yStart=x%17;*/
-/*		list->yEnd=x%19;*/
-/*	}*/
+	list= insertAfter(NULL);
+	IC* head=list;
+	list->state=1;
+	for(int x=0;x<101;x++){
+		list=insertAfter(list);
+		list->state=x;
+		list->yStart=x%17;
+		list->yEnd=x%19;
+	}
 
-/*list=head;*/
-/*	list=insertAfter(list);*/
-/*	list->yEnd=123123123;*/
-/*	list=head;*/
-/*	for (;list!=NULL;)*/
-/*	{*/
-/*		printf("%f ",list->yEnd);*/
-/*		list=list->next;*/
-/*	}*/
-/*	deleteWholeList(head);*/
-/*	printf("\n\n\n success!!\n");*/
+list=head;
+	list=insertAfter(list);
+	list->yEnd=123123123;
+	list=head;
+	for (;list!=NULL;)
+	{
+		printf("%f ",list->yEnd);
+		list=list->next;
+	}
+	deleteWholeList(head);
+	printf("\n\n\n success!!\n");
 	return 0;
 }
