@@ -47,13 +47,13 @@ void processData(float* data, int x, int y, PC** pcArray, int col, int row){
 	pcArray[scaledX][y].y=y;								//seems to make no sense, but: pcArray[y] will contain the weighed y value. (y wont be an integer.)
 	
 	if(maxValue>0.6){
-		pcArray[scaledX][y].state=1;	
+		pcArray[scaledX][y].state=maxValue;	
 		if(maxValue<0 || maxValue>1)printf("maxValue= %f\n\n\n",maxValue);	
 		//printf("state one is put!!!!\n");
 	}
-	else if(maxValue<0.4)pcArray[scaledX][y].state=0;
+	else if(maxValue<0.3)pcArray[scaledX][y].state=0;
 	//else if(maxValue<0)pcArray[scaledX][y].state=0;
-	else pcArray[scaledX][y].state=0.5;
+	else pcArray[scaledX][y].state=maxValue;
 	pcArray[scaledX][y].xPosition=maxValuesX;
 }
 	
@@ -106,7 +106,7 @@ void writeICtoPGM(IC** icArray, int row_size, int col_size,const char *outputFil
 				fprintf(stderr,"data structure is not dense - there is not everything ; \n col=%d   row = %d\n\n",z,row/ROWS_IN_INTERVAL);
 			}
 			
-			float dif=runPtr->yEnd-runPtr->yStart;
+			float dif=(runPtr->yEnd)-(runPtr->yStart);
 /*							printf("runPtr->yStart %f, runPtr->yEnd= %f\n",runPtr->yStart,runPtr->yEnd);*/
 			for(int y=0;y<=dif;y++){
 				//for(int offset=0;offset<ROWS_IN_INTERVAL;offset++)
@@ -374,8 +374,8 @@ void shiftStructure(IC** curICArray,int stepsize,int width){
 /*				printf("%d ",x-1);*/
 /*				printList(curICArray[x]);*/
 		}
-		deleteWholeList(curICArray[0]); //free lowest row, we dont need it anymore
-		curICArray[0]=insertAfter(NULL);
+		deleteWholeList(curICArray[0]->next); //free lowest row, we dont need it anymore
+/*		curICArray[0]=insertAfter(NULL);*/
 		curICArray[0]->yStart=0;
 		curICArray[0]->yEnd=width-1;
 		curICArray[0]->state=0.2;		
@@ -467,9 +467,9 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 				}
 
 				if(startX<endX && startX!=endX){
-					insertInto(accessIC(whiteICArray,interval),startX,endX,accessIC(runArray,i)->state);
+					insertInto(whiteICArray[interval],startX,endX,runArray[i]->state);
 				}
-				tidyUpList(accessIC(whiteICArray,interval));			//check structure for slow gaps, which came from rotating everything
+				tidyUpList(whiteICArray[interval]);			//check structure for slow gaps, which came from rotating everything
 /*				if(interval==43){*/
 /*					printf("                       %d ",interval);*/
 /*					printList(accessIC(whiteICArray,interval));*/
@@ -481,6 +481,7 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 		}
 	}
 	freeICArray(curICArray,curICArraySize);
+	
 	curICArray=whiteICArray;
 
 
@@ -495,7 +496,7 @@ IC* associateBoarder(IC** map,IC* icMeas,int curIndex){
 		startDev=fabs(icMap->yStart-icMeas->yStart)/curArrayWidth;
 		endDev=fabs(icMap->yEnd-icMeas->yEnd)/curArrayWidth;
 		stateDev= fabs(icMap->state-icMeas->state);
-		if(startDev+endDev<0.2 && stateDev<0.2){
+		if(startDev+endDev<0.1 && stateDev<0.1){
 			//associated!
 /*			if(curIndex==25){*/
 /*			printf("startDev %f, endDev= %f,stateDev= %f\n",startDev,endDev,stateDev);*/
@@ -595,7 +596,7 @@ int stepsize=8;
 	PGMDataFloat tmp;
 	PGMDataFloat* pgmpic;
 
-	pgmpic=readPGM("400x1280.pgm",&tmp);
+	pgmpic=readPGM("400x1280_low.pgm",&tmp);
 	
 	
 	PGMDataFloat* pgmOut = (PGMDataFloat*)malloc(sizeof(PGMDataFloat));
@@ -643,10 +644,9 @@ int stepsize=8;
 		//Longitudinal:	
 		shiftStructure(curICArray,stepsize,pgmOut->col);
 		
-		
+
 		writeICtoPGM(curICArray,640,400,"afterShift.pgm");
 		if(VISUAL)system("xdg-open afterShift.pgm");
-
 		
 		//////////////////////////////////////////////////////SENSORSIMULATION////////////////////////////////////////////////////////////////////		
 //Pepare "Sensor"-Values for algorithm. it would not be relevant if we would get real data -> so it doesnt take time in simulation!
@@ -678,7 +678,7 @@ int stepsize=8;
 		//free(curICArray);
 
 		
-			if(((pgmpic->row-640)/stepsize)-step==2){
+			if(((pgmpic->row-640)/stepsize)-step==0){
 /*				for (int i = curICArraySize-1; i >0; i -= 1)*/
 /*				{*/
 /*					//printf("%d  ",i);*/
