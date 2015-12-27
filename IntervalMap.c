@@ -606,6 +606,7 @@ int stepsize=8;
 	pgmOut->max_gray=255;
 
 	IC** measIC;
+	IC** whiteICArray;
 //////////////////////////////////////////////////////SENSORSIMULATION////////////////////////////////////////////////////////////////////		
 	float angleArray[30]={0,0,4,4,-4,0,-4,0,0,-8,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0};
 	float angle=4.0;
@@ -639,7 +640,7 @@ int stepsize=8;
 	//1. compensate own vehicle motion
 	//2. Prediction of other Objects
 		//Rotation: 
-		IC** whiteICArray = makeNewWhite(curICArraySize,pgmOut->col); //tested.
+		whiteICArray = makeNewWhite(curICArraySize,pgmOut->col); //tested.
 		rotateStructure(curICArray,angle/360*3.142,pgmOut->col,pgmOut->row,whiteICArray);
 		//Longitudinal:	
 		shiftStructure(curICArray,stepsize,pgmOut->col);
@@ -672,13 +673,13 @@ int stepsize=8;
 		freeICArray(measIC,curICArraySize);
 		writeICtoPGM(curICArray,640,400,"afterAaU.pgm");
 		if(VISUAL)system("xdg-open afterAaU.pgm");
-	//5. Merge
+	//5. Merge 
 		//would be tidyUpList, but we use it already!
 
 		//free(curICArray);
 
 		
-			if(((pgmpic->row-640)/stepsize)-step==0){
+			if(((pgmpic->row-640)/stepsize)-step==2){
 /*				for (int i = curICArraySize-1; i >0; i -= 1)*/
 /*				{*/
 /*					//printf("%d  ",i);*/
@@ -699,7 +700,11 @@ int stepsize=8;
 	}
 	free(curICArray);
 /*	freeICArray(curICArray,curICArraySize);*/
-
+	if(whiteICArray!=NULL){
+		freeICArray(whiteICArray,curICArraySize);
+		free(whiteICArray);
+	}
+	free(measIC);
 	deallocate_dynamic_matrix(pgmpic->matrix, pgmpic->row);
 	//free(pgmpic);
 	deallocate_dynamic_matrix(pgmOut->matrix, pgmOut->row);

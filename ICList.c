@@ -207,6 +207,7 @@ void itemsInList(IC* head){
 	printf("list has %d entries\n",ctr);
 }
 
+
 void deleteWholeList(IC* start){
 	if(start!=NULL){
 		deleteWholeList(start->next);
