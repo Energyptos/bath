@@ -164,6 +164,7 @@ void tidyUpList(IC* head){
 				//make it disapear
 				if(runPtr->prev!=NULL && runPtr->next!=NULL){
 				 printf("DELETE!!!!!!!!\n\n\n");
+				 printList(head);
 					runPtr=runPtr->prev;
 					runPtr->yEnd=runPtr->next->yEnd;
 					deleteThis(runPtr->next);
@@ -188,13 +189,21 @@ void deleteAfter(IC* thisOne){
 
 
 void deleteThis(IC* thisOne){
-	//printf("this %p, prev %p , next %p\n\n\n",thisOne,thisOne->prev, thisOne->next);
 	if(thisOne==NULL)return;
 	if(thisOne->next!=NULL && thisOne->prev!=NULL){
 		thisOne->prev->next=thisOne->next;
 		thisOne->next->prev=thisOne->prev;
 	}
+	if(thisOne->next==NULL && thisOne->prev!=NULL){
+	//one before none after -> before should point to NULL!
+		thisOne->prev->next=NULL;
+	}
+	if(thisOne->next!=NULL && thisOne->prev==NULL){
+	//none before one after -> after->prev should point to NULL!
+		thisOne->next->prev=NULL;
+	}
 	free(thisOne);
+	thisOne=NULL;
 }
 
 void itemsInList(IC* head){
@@ -211,7 +220,8 @@ void itemsInList(IC* head){
 void deleteWholeList(IC* start){
 	if(start!=NULL){
 		deleteWholeList(start->next);
-		free(start);
+		deleteThis(start);
+		start=NULL;
 	}
 	return;
 }

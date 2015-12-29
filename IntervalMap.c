@@ -104,6 +104,7 @@ void writeICtoPGM(IC** icArray, int row_size, int col_size,const char *outputFil
 		for(int z=0;z<col_size;runPtr=runPtr->next){
 			if(runPtr==NULL){
 				fprintf(stderr,"data structure is not dense - there is not everything ; \n col=%d   row = %d\n\n",z,row/ROWS_IN_INTERVAL);
+				printList(icArray[row/ROWS_IN_INTERVAL]);
 			}
 			
 			float dif=(runPtr->yEnd)-(runPtr->yStart);
@@ -127,15 +128,18 @@ void writeICtoPGM(IC** icArray, int row_size, int col_size,const char *outputFil
 	writePGM(outputFileName, tmp);
 	deallocate_dynamic_matrix(tmp->matrix,tmp->row);
 	free(tmp);
+	tmp=NULL;
 	free(file);
+	file=NULL;
 	free(pgmOut);
+	pgmOut=NULL;
 }
 
 
 
 
 
-IC** convertPgm(const char *inputFileName,const char *outputFileName,IC** newICArray){
+IC** convertPgm(const char *inputFileName,const char *outputFileName){
 	PGMDataFloat pgmpicture;
 	PGMDataFloat* pgmpicture2;
 	pgmpicture2 = readPGM(inputFileName, &pgmpicture);
@@ -145,14 +149,11 @@ IC** convertPgm(const char *inputFileName,const char *outputFileName,IC** newICA
 	
 
 	
-/*	IC** newICArray;*/
-	newICArray=(IC**)malloc(sizeof(IC*)*pgmpicture2->row/ROWS_IN_INTERVAL);
+	IC** newICArray=(IC**)malloc(sizeof(IC*)*pgmpicture2->row/ROWS_IN_INTERVAL);
 	if(curICArraySize==0){
 		printf("Initialize!\n");
 		curICArraySize=pgmpicture2->row/ROWS_IN_INTERVAL;
 		curArrayWidth=pgmpicture2->col;
-/*		curICArrayLocale = newICArray;*/
-		curICArray=newICArray;
 	}
 
 	
@@ -172,18 +173,22 @@ IC** convertPgm(const char *inputFileName,const char *outputFileName,IC** newICA
 	
 //	printf("achtung: yEnd: %.0f, yStart: %.0f",accessIC(newICArray,0)->yEnd,accessIC(newICArray,0)->yStart);
 //	printf("----> pointer should be : %p",newICArray[0]);
+
 	writeICtoPGM(newICArray,pgmpicture2->row,pgmpicture2->col,outputFileName);
 	
 	
 	for(int x=0; x<pgmpicture2->row/ROWS_IN_INTERVAL; x++){
 		free(pcarray[x]);
+		pcarray[x]=NULL;
 		//free(newICArray[x]);
 	}
 	free(pcarray);
+	pcarray=NULL;
 	
 	
 	deallocate_dynamic_matrix(pgmpicture2->matrix,pgmpicture2->row);
 	free(pgmpicture2);
+	pgmpicture2=NULL;
 	
 	deallocate_dynamic_matrix(pgmpicture.matrix,pgmpicture.row);
 	return newICArray;
@@ -367,6 +372,7 @@ void shiftStructure(IC** curICArray,int stepsize,int width){
 		shiftOffset-=1;
 		shiftSize++;
 	};
+	deleteWholeList(curICArray[curICArraySize-1]);
 	for(int shift=0;shift<shiftSize;shift++){
 		for(int x=curICArraySize-1;x>=1;x--){
 			curICArray[x]=curICArray[x-1];
@@ -374,11 +380,12 @@ void shiftStructure(IC** curICArray,int stepsize,int width){
 /*				printf("%d ",x-1);*/
 /*				printList(curICArray[x]);*/
 		}
-		deleteWholeList(curICArray[0]->next); //free lowest row, we dont need it anymore
-/*		curICArray[0]=insertAfter(NULL);*/
+/*		deleteWholeList(curICArray[0]); //free lowest row, we dont need it anymore*/
+		curICArray[0]=NULL;
+		curICArray[0]=insertAfter(NULL);
 		curICArray[0]->yStart=0;
 		curICArray[0]->yEnd=width-1;
-		curICArray[0]->state=0.2;		
+		curICArray[0]->state=0.2;
 	}
 }
 
@@ -387,7 +394,14 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 
 
 //TODO: USE accessIC instead of normal access!!!
-	if(angle==0.)return;
+	if(angle==0.){
+		for(int x=0;x<curICArraySize;x++){
+			free(whiteICArray[x]);
+		}
+		free(whiteICArray);
+		whiteICArray=NULL;
+		return;
+	}
 	
 	for(int i=0;i<curICArraySize;i++){
 	//	printf("durchlauf!!!!!!!\n\n");
@@ -470,19 +484,21 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 					insertInto(whiteICArray[interval],startX,endX,runArray[i]->state);
 				}
 				tidyUpList(whiteICArray[interval]);			//check structure for slow gaps, which came from rotating everything
-/*				if(interval==43){*/
-/*					printf("                       %d ",interval);*/
-/*					printList(accessIC(whiteICArray,interval));*/
-/*				}*/
+				if(interval==1){
+					printf("                       %d ",interval);
+					printList(accessIC(whiteICArray,interval));
+				}
 			}
 			
 			
 			free(lines);
+			lines=NULL;
 		}
 	}
 	freeICArray(curICArray,curICArraySize);
-	
 	curICArray=whiteICArray;
+	//free(whiteICArray);
+	//whiteICArray=NULL;
 
 
 }
@@ -583,11 +599,12 @@ void freeICArray(IC** array,int size){
 		{
 			deleteWholeList(array[i]);
 		}
-	//free(array);
+	free(array);
+	array=NULL;
 }
 
 int main( int argc,char** argv){
-int stepsize=8;
+	int stepsize=8;
 	curICArray=NULL;
 	curICArraySize=0;
 	shiftProgress=0;
@@ -608,7 +625,7 @@ int stepsize=8;
 	IC** measIC;
 	IC** whiteICArray;
 //////////////////////////////////////////////////////SENSORSIMULATION////////////////////////////////////////////////////////////////////		
-	float angleArray[30]={0,0,4,4,-4,0,-4,0,0,-8,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0};
+	float angleArray[30]={3,3,4,4,-4,0,-4,0,0,-8,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0};
 	float angle=4.0;
 	
 	//create 1st pic -> start position!
@@ -621,7 +638,7 @@ int stepsize=8;
 	
 	writePGM("tmpOut.pgm",pgmOut);
 	//NOW we are at the part for interpreting the simulated "sensor"-values.
-	convertPgm("tmpOut.pgm","pgmOutPicture.pgm",curICArray);
+	curICArray=convertPgm("tmpOut.pgm","pgmOutPicture.pgm");
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\SENSORSIMULATION END\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\	
 	
 	
@@ -635,7 +652,7 @@ int stepsize=8;
 
 		angle=angleArray[((pgmpic->row-640)/stepsize)-step];
 /*		system("xdg-open pgmOutPicture.pgm");*/
-		
+
 
 	//1. compensate own vehicle motion
 	//2. Prediction of other Objects
@@ -644,7 +661,8 @@ int stepsize=8;
 		rotateStructure(curICArray,angle/360*3.142,pgmOut->col,pgmOut->row,whiteICArray);
 		//Longitudinal:	
 		shiftStructure(curICArray,stepsize,pgmOut->col);
-		
+
+
 
 		writeICtoPGM(curICArray,640,400,"afterShift.pgm");
 		if(VISUAL)system("xdg-open afterShift.pgm");
@@ -665,7 +683,7 @@ int stepsize=8;
 
 	//3.Feature Extraction	
 		//--> done with the convertPGM method 
-		measIC = convertPgm("tmpOut.pgm","pgmOutPicture.pgm",measIC);
+		measIC = convertPgm("tmpOut.pgm","pgmOutPicture.pgm");
 		if(VISUAL)system("xdg-open pgmOutPicture.pgm");
 
 	//4. Association and update
@@ -679,7 +697,7 @@ int stepsize=8;
 		//free(curICArray);
 
 		
-			if(((pgmpic->row-640)/stepsize)-step==2){
+			if(((pgmpic->row-640)/stepsize)-step==1){
 /*				for (int i = curICArraySize-1; i >0; i -= 1)*/
 /*				{*/
 /*					//printf("%d  ",i);*/
@@ -692,19 +710,22 @@ int stepsize=8;
 		if(VISUAL)sleep(2);
 	}
 	//FREE all ressources
-	for (int i = curICArraySize-1; i >0; i -= 1)
+/*	freeICArray(curICArray,curICArraySize);*/
+		
+	for (int i = curICArraySize-1; i >=0; i -= 1)
 	{
 		//printf("%d  ",i);
 		//printList(curICArray[i]);
-		deleteWholeList(curICArray[i]);
+		if(curICArray[i]!=NULL)	deleteWholeList(curICArray[i]);
 	}
-	free(curICArray);
 /*	freeICArray(curICArray,curICArraySize);*/
-	if(whiteICArray!=NULL){
-		freeICArray(whiteICArray,curICArraySize);
-		free(whiteICArray);
+	
+			
+	if(curICArray!=NULL) {
+		free(curICArray);
+		curICArray=NULL;
 	}
-	free(measIC);
+	//free(measIC);
 	deallocate_dynamic_matrix(pgmpic->matrix, pgmpic->row);
 	//free(pgmpic);
 	deallocate_dynamic_matrix(pgmOut->matrix, pgmOut->row);
