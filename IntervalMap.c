@@ -14,7 +14,7 @@
 #define DATA_COLUMNS 8
 #define EPSILON 0.00001
 
-#define VISUAL 0
+#define VISUAL 1
 
 
 
@@ -256,7 +256,7 @@ float b(float x1, float y1, float x2, float y2){
 	}
 	bot=EPSILON;
 	
-	fprintf(stderr,"b calculation failed! (bot=%f) , x1=%f : x2=%f \n",bot,x1,x2);
+/*	fprintf(stderr,"b calculation failed! (bot=%f) , x1=%f : x2=%f \n",bot,x1,x2);*/
 	return top/bot;
 }
 
@@ -268,7 +268,7 @@ float m(float x1, float y1, float x2, float y2){
 		return ret;
 	}
 	bot=EPSILON;
-	fprintf(stderr,"m calculation failed! \n");
+/*	fprintf(stderr,"m calculation failed! \n");*/
 	return top/bot;
 }
 
@@ -390,7 +390,7 @@ void shiftStructure(IC** curICArray,int stepsize,int width){
 }
 
 
-void rotateStructure(IC** icArray, float angle, int width, int height,IC** whiteICArray){
+void rotateStructure(float angle, int width, int height,IC** whiteICArray){
 
 
 //TODO: USE accessIC instead of normal access!!!
@@ -405,16 +405,18 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 	
 	for(int i=0;i<curICArraySize;i++){
 	//	printf("durchlauf!!!!!!!\n\n");
-		for(IC** runArray=icArray;accessIC(runArray,i)!=NULL;setIC(runArray,i,accessIC(runArray,i)->next)){
-	//		printf("state= %f\n",runArray[i]->state);
-			if(accessIC(runArray,i)->state < 0.4)continue;
+		IC* head=curICArray[i];
+		for(;curICArray[i]!=NULL;curICArray[i]=curICArray[i]->next){
+	//		printf("state= %f\n",curICArray[i]->state);
+			if(curICArray[i]->state < 0.4)continue;
 			//step 1: get the corner coordinates:
+			
 			float tlX,tlY,blX,blY,trX,trY,brX,brY;  //tl=topLeft , bl=bottomLeft, tr=topright....
 			
-			tlX= accessIC(runArray,i)->yStart;
+			tlX= curICArray[i]->yStart;
 			tlY=i * ROWS_IN_INTERVAL;   //was curICArraySize-i)*ROWS_IN_INTERVAL
 			trY= tlY;
-			trX= accessIC(runArray,i)->yEnd;
+			trX= curICArray[i]->yEnd;
 			blX= tlX;
 			blY= tlY+ROWS_IN_INTERVAL;
 			brY= blY;
@@ -427,6 +429,8 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 			rot(&trX,&trY,angle,round(width/2),height);
 			rot(&brX,&brY,angle,round(width/2),height);
 			
+			
+
 			//step 3: create 4 straight lines with the points and mark intervals
 			Line* lines=(Line*)malloc(sizeof(Line)*4);
 			if(lines==NULL){
@@ -481,7 +485,7 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 				}
 
 				if(startX<endX && startX!=endX){
-					insertInto(whiteICArray[interval],startX,endX,runArray[i]->state);
+					insertInto(whiteICArray[interval],startX,endX,curICArray[i]->state);
 				}
 				tidyUpList(whiteICArray[interval]);			//check structure for slow gaps, which came from rotating everything
 				if(interval==1){
@@ -494,9 +498,11 @@ void rotateStructure(IC** icArray, float angle, int width, int height,IC** white
 			free(lines);
 			lines=NULL;
 		}
+		deleteWholeList(head);
 	}
-	freeICArray(curICArray,curICArraySize);
+	free(curICArray);
 	curICArray=whiteICArray;
+	return;
 	//free(whiteICArray);
 	//whiteICArray=NULL;
 
@@ -658,12 +664,12 @@ int main( int argc,char** argv){
 	//2. Prediction of other Objects
 		//Rotation: 
 		whiteICArray = makeNewWhite(curICArraySize,pgmOut->col); //tested.
-		rotateStructure(curICArray,angle/360*3.142,pgmOut->col,pgmOut->row,whiteICArray);
+		rotateStructure(angle/360*3.142,pgmOut->col,pgmOut->row,whiteICArray);
 		//Longitudinal:	
 		shiftStructure(curICArray,stepsize,pgmOut->col);
 
 
-
+		
 		writeICtoPGM(curICArray,640,400,"afterShift.pgm");
 		if(VISUAL)system("xdg-open afterShift.pgm");
 		
@@ -697,7 +703,7 @@ int main( int argc,char** argv){
 		//free(curICArray);
 
 		
-			if(((pgmpic->row-640)/stepsize)-step==1){
+			if(((pgmpic->row-640)/stepsize)-step==2){
 /*				for (int i = curICArraySize-1; i >0; i -= 1)*/
 /*				{*/
 /*					//printf("%d  ",i);*/
@@ -715,6 +721,7 @@ int main( int argc,char** argv){
 	for (int i = curICArraySize-1; i >=0; i -= 1)
 	{
 		//printf("%d  ",i);
+
 		//printList(curICArray[i]);
 		if(curICArray[i]!=NULL)	deleteWholeList(curICArray[i]);
 	}

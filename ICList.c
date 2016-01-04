@@ -163,8 +163,6 @@ void tidyUpList(IC* head){
 			if(runPtr->yEnd-runPtr->yStart<min_whitespace){
 				//make it disapear
 				if(runPtr->prev!=NULL && runPtr->next!=NULL){
-				 printf("DELETE!!!!!!!!\n\n\n");
-				 printList(head);
 					runPtr=runPtr->prev;
 					runPtr->yEnd=runPtr->next->yEnd;
 					deleteThis(runPtr->next);
@@ -173,7 +171,6 @@ void tidyUpList(IC* head){
 			}
 		}
 		if(runPtr->next!=NULL && fabs(runPtr->next->state-runPtr->state)<EPSILON){
-			printf("runPtr->next->state = %f,   runPtr->state= %f;   runPtr->yStart=%f:   DELETE!!!!!!!!\n\n\n",runPtr->next->state,runPtr->state,runPtr->yStart);
 			runPtr->yEnd=runPtr->next->yEnd;
 			deleteThis(runPtr->next);
 			continue;
